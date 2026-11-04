@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>팀 행사 일정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" media="print" onload="this.media='all'">
+<style>
+/* Layout: one month grid that keeps all 7 days visible at every width.
+   Wide screens put names inside each day; phones show colored bars and a tap-to-open day sheet. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --line:#dfe3eb; --fg:#1b2333; --muted:#677189;
+  --accent:#1f3864; --accent-ink:#ffffff; --today:#e8862a; --sun:#c43d3d; --sat:#2f5fb8; --warn:#b42828;
+  --sky-bg:#d5e9fb; --sky-ink:#174a75; --orange-bg:#fde0bd; --orange-ink:#7a4210;
+  --green-bg:#d4eecf; --green-ink:#24561d; --purple-bg:#e3d8f6; --purple-ink:#4c2f80;
+  --yellow-bg:#fff1b0; --yellow-ink:#6b5300; --pink-bg:#fbd8ea; --pink-ink:#7d2453;
+  --blue-bg:#bfd0f6; --blue-ink:#1d3a80; --red-bg:#f8c6c6; --red-ink:#7f1d1d;
+  --night-bg:#3d3270; --night-ink:#f1edff;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161f; --surface:#1a202c; --line:#2c3445; --fg:#e7ebf3; --muted:#98a2b8;
+  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
+  --sky-bg:#1d3c58; --sky-ink:#cfe6fb; --orange-bg:#553416; --orange-ink:#fde0bd;
+  --green-bg:#1f4421; --green-ink:#d4eecf; --purple-bg:#3a2b5c; --purple-ink:#e3d8f6;
+  --yellow-bg:#4d4111; --yellow-ink:#fff1b0; --pink-bg:#5a2440; --pink-ink:#fbd8ea;
+  --blue-bg:#22356a; --blue-ink:#cfdcfa; --red-bg:#5c2323; --red-ink:#f8c6c6;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161f; --surface:#1a202c; --line:#2c3445; --fg:#e7ebf3; --muted:#98a2b8;
+  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
+  --sky-bg:#1d3c58; --sky-ink:#cfe6fb; --orange-bg:#553416; --orange-ink:#fde0bd;
+  --green-bg:#1f4421; --green-ink:#d4eecf; --purple-bg:#3a2b5c; --purple-ink:#e3d8f6;
+  --yellow-bg:#4d4111; --yellow-ink:#fff1b0; --pink-bg:#5a2440; --pink-ink:#fbd8ea;
+  --blue-bg:#22356a; --blue-ink:#cfdcfa; --red-bg:#5c2323; --red-ink:#f8c6c6;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:16px}
+
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand h1{margin:0;font-size:1.25rem;font-weight:700;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:.8rem}
+.nav{display:flex;align-items:center;gap:6px}
+.nav button{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--fg);
+  height:36px;min-width:36px;padding:0 12px;border-radius:8px;cursor:pointer}
+.nav button:hover{border-color:var(--accent)}
+.nav button:focus-visible,.day:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.month{font-family:var(--f-num);font-weight:600;font-size:1.05rem;min-width:7.5em;text-align:center;font-variant-numeric:tabular-nums}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend .lgn{font-size:.72rem}
+
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:8px 0;text-align:center;font-size:.78rem;font-weight:700;color:var(--muted);
+  border-bottom:1px solid var(--line);letter-spacing:.04em}
+.dow div:first-child{color:var(--sun)} .dow div:last-child{color:var(--sat)}
+.day{min-width:0;min-height:118px;padding:6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  display:flex;flex-direction:column;gap:4px;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:inherit}
+.grid .day:nth-child(7n){border-right:none}
+.day.out{background:var(--bg)}
+.day.out .num,.day.out .chip{opacity:.45}
+.day.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.num{font-family:var(--f-num);font-weight:600;font-size:.82rem;font-variant-numeric:tabular-nums;
+  display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%}
+.day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
+.day.today .num{background:var(--today);color:#fff}
+.day.warn .num{box-shadow:0 0 0 2px var(--warn)}
+
+.chips{display:grid;gap:3px;min-width:0}
+.chip{border-radius:6px;padding:3px 6px;font-size:.74rem;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.chip b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .n{display:block}
+.chip .night{display:block;font-weight:500}
+.chip .none{opacity:.75}
+.miss{color:var(--warn);font-weight:700}
+.bars{display:none}
+
+.c-sky{background:var(--sky-bg);color:var(--sky-ink)} .c-orange{background:var(--orange-bg);color:var(--orange-ink)}
+.c-green{background:var(--green-bg);color:var(--green-ink)} .c-purple{background:var(--purple-bg);color:var(--purple-ink)}
+.c-yellow{background:var(--yellow-bg);color:var(--yellow-ink)} .c-pink{background:var(--pink-bg);color:var(--pink-ink)}
+.c-blue{background:var(--blue-bg);color:var(--blue-ink)} .c-red{background:var(--red-bg);color:var(--red-ink)}
+.c-night{background:var(--night-bg);color:var(--night-ink)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px}
+.panel h2{margin:0;font-size:.95rem;font-weight:700}
+.panel h2 small{font-family:var(--f-num);font-weight:500;color:var(--muted);margin-left:6px}
+.item{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;padding:10px 12px;border-radius:10px}
+.item .t{font-weight:700}
+.item .k{font-size:.75rem;opacity:.85;padding-top:2px;white-space:nowrap}
+.item .v{min-width:0;overflow-wrap:anywhere}
+.item .meta{grid-column:1/-1;font-size:.75rem;opacity:.85}
+.empty{color:var(--muted);font-size:.85rem}
+.list{display:grid;gap:8px}
+.ev{display:flex;align-items:center;gap:10px;font-size:.85rem}
+.ev .sw{flex-shrink:0}
+@media (max-width:720px){.ev{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px}.ev .when{grid-column:2}.ev>span:not(.when):not(.cnt){grid-column:2}.ev .cnt{grid-column:3;grid-row:1}}
+.ev .when{font-family:var(--f-num);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.foot{color:var(--muted);font-size:.75rem}
+.who{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.who label{font-size:.85rem;font-weight:700}
+.combo{position:relative;width:13em;max-width:100%}
+.combo input{font:inherit;font-size:16px;width:100%;height:38px;padding:0 34px 0 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--fg)}
+.combo input::placeholder{color:var(--muted)}
+.combo input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.who.on .combo input{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);font-weight:700}
+.combo .clear{position:absolute;right:4px;top:4px;width:30px;height:30px;border:0;border-radius:6px;background:transparent;
+  color:var(--muted);font-size:1.1rem;cursor:pointer;display:none}
+.who.on .combo .clear{display:block}
+.plist{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);
+  max-height:260px;overflow-y:auto}
+.plist[hidden]{display:none}
+.plist li{padding:9px 10px;border-radius:6px;cursor:pointer}
+.plist li.act,.plist li:hover{background:var(--bg)}
+.plist li mark{background:none;color:var(--accent);font-weight:700}
+.plist li.none{color:var(--muted);cursor:default}
+.mysum{font-size:.85rem;color:var(--muted)}
+.mysum b{color:var(--fg);font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.chip .shift{display:inline-block;font-size:.68rem;font-weight:700;padding:0 5px;border-radius:4px;border:1px solid currentColor;margin-top:2px}
+.ev .cnt{margin-left:auto;font-family:var(--f-num);color:var(--muted);font-size:.8rem;white-space:nowrap}
+.dayonly{display:none}
+
+/* Phone: keep the 7-day grid, swap names for colored bars, open details below */
+@media (max-width:720px){
+  .day{min-height:76px;padding:4px 3px;gap:3px;align-items:center}
+  .chips{display:none}
+  .bars{display:grid;gap:2px;width:100%;align-self:stretch}
+  .bar{height:14px;border-radius:4px;position:relative;min-width:0}
+  .bar.empty{background:none}
+  /* 같은 행사가 다음 날로 이어지면 칸 경계까지 늘려서 한 줄처럼 보이게 */
+  .bar.cl{margin-left:-3px;border-top-left-radius:0;border-bottom-left-radius:0}
+  .bar.cr{margin-right:-4px;border-top-right-radius:0;border-bottom-right-radius:0}
+  .bar em{position:absolute;left:3px;top:0;z-index:1;font-style:normal;font-size:9px;line-height:14px;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:clip;width:calc(var(--run) * 100% + (var(--run) - 1) * 7px - 4px);pointer-events:none}
+  .day.out .bar{opacity:.45}
+  .more{font-size:.62rem;color:var(--muted);text-align:center;font-family:var(--f-num)}
+  .num{width:22px;height:22px;font-size:.78rem}
+  .dayonly{display:grid}
+  .brand h1{font-size:1.1rem}
+}
+@media (prefers-reduced-motion:no-preference){.day{transition:background-color .12s}}
+
+/* ---------- 관리자 모드 ---------- */
+.adminonly{display:none}
+body.admin .adminonly{display:flex}
+body.admin .dayonly{display:grid}
+.abar{flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--accent);color:var(--accent-ink)}
+.abar .badge{font-weight:700;font-size:.85rem;margin-right:4px}
+.atabs{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.atabs button,.abar .out{font:inherit;font-size:.85rem;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.35);
+  background:transparent;color:inherit;cursor:pointer}
+.atabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);border-color:var(--surface);font-weight:700}
+.abar .out{margin-left:auto}
+.apanel{display:none}
+body.admin[data-tab="assign"] #adm-assign, body.admin[data-tab="events"] #adm-events, body.admin[data-tab="people"] #adm-people, body.admin[data-tab="members"] #adm-members{display:grid}
+body.admin:not([data-tab="cal"]) .calview{display:none !important}
+.form{display:grid;gap:12px}
+.frow{display:grid;gap:6px;min-width:0}
+.frow > span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.form input,.form select,.form textarea{font:inherit;font-size:16px;min-height:38px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--fg);width:100%;min-width:0}
+.form textarea{min-height:64px;resize:vertical}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:max-content}
+.seg label{display:flex}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{padding:8px 16px;cursor:pointer;font-size:.9rem}
+.seg input:checked + span{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:-2px}
+.people{display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto;padding:2px}
+.pchip{font:inherit;font-size:.88rem;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.pchip small{margin-left:4px;color:var(--warn);font-size:.7rem}
+.pchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pchip.on small{color:inherit}
+.combo.wide{width:100%}
+.nights{display:grid;gap:4px;max-height:280px;overflow-y:auto;padding:2px}
+.nrow{display:grid;grid-template-columns:auto 1fr 9.5em;align-items:center;gap:8px;padding:4px 6px;border-radius:8px}
+.nrow:has(input[type=checkbox]:checked){background:var(--night-bg);color:var(--night-ink)}
+.nrow input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--night-bg)}
+.nrow input[type=number]{min-height:32px;height:32px;font-size:16px}
+.nrow input[type=number]:disabled{opacity:.35}
+.nedit[hidden]{display:none}
+.erow{position:relative}
+.erow > .danger{position:absolute;right:0;top:10px}
+.erow .emain > b,.erow .emain > span:first-of-type{padding-right:56px}
+.mnav{margin-left:auto;display:flex;align-items:center;gap:6px}
+.mnav button{font:inherit;width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer}
+.mnav input[type=month]{font:inherit;font-size:16px;height:34px;padding:0 6px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);max-width:11em}
+.mnav.dim{opacity:.4}
+.adddet{border:1px solid var(--line);border-radius:10px;padding:0 12px}
+.adddet[open]{padding-bottom:12px}
+.adddet summary{cursor:pointer;font-weight:700;padding:12px 0;color:var(--accent)}
+.esearch input{font:inherit;font-size:16px;width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.emon{font-size:.8rem;font-weight:700;color:var(--muted);padding:10px 0 2px;border-top:1px solid var(--line)}
+.erow + .emon{margin-top:4px}
+.ad-day{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.ad-day.today{border-color:var(--today)}
+.ad-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-weight:700}
+.ad-head .needl{grid-column:auto;font-weight:400}
+.ad-row{display:grid;grid-template-columns:2.6em 1fr;gap:6px;align-items:start}
+.ad-row .k{font-size:.78rem;color:var(--muted);padding-top:6px}
+.ad-row.night .k{color:var(--night-bg);font-weight:700}
+.ad-names{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.ad-chip{font:inherit;font-size:.85rem;display:inline-flex;align-items:center;gap:5px;padding:4px 6px 4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.ad-row.night .ad-chip{background:var(--night-bg);color:var(--night-ink);border-color:var(--night-bg)}
+.ad-chip .x{font-size:.8rem;opacity:.7}
+.ad-add{display:flex;gap:4px}
+.ad-add input{font:inherit;font-size:16px;width:7.5em;height:32px;padding:0 8px;border:1px dashed var(--line);border-radius:999px;background:transparent;color:var(--fg)}
+.ad-add button,.ad-more{font:inherit;font-size:.8rem;height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.ad-all{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--bg);font-size:.85rem}
+.ad-all input{font:inherit;font-size:16px;width:8em;height:32px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.ad-all select{font:inherit;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.nrow.need{grid-template-columns:1fr 6em 6em}
+.erow.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%,40%{background:color-mix(in srgb,var(--accent) 18%,transparent)}100%{background:transparent}}
+.needl{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.8rem;align-items:center}
+.needl b{font-family:var(--f-num)}
+.needl .bad{color:var(--warn);font-weight:700}
+.needl .ok{color:#1f7a3a;font-weight:700}
+.short-dot{display:none}
+body.admin .short-dot{display:block;position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.day{position:relative}
+body.admin .ev.jump{cursor:pointer;border-radius:6px}
+body.admin .ev.jump:hover{background:var(--bg)}
+body.admin .ev.jump::after{content:"관리 ›";margin-left:auto;font-size:.75rem;color:var(--muted)}
+body.admin .item .t.jumpt{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.nedit{grid-column:1/-1;display:grid;gap:8px;margin-top:6px;padding:10px;border:1px dashed var(--line);border-radius:10px}
+.nightinfo{color:var(--night-bg) !important;font-weight:700}
+.onlyn{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.onlyn input{width:18px;height:18px;min-height:0}
+#adm-assign:not(.night) .nightonly{display:none}
+.nh{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8rem}
+.nh b{font-family:var(--f-num)}
+.combo.wide input{padding-right:10px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center}
+.tags .hint{font-size:.82rem;color:var(--muted)}
+.tag{font:inherit;font-size:.88rem;display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:999px;
+  background:var(--accent);color:var(--accent-ink);border:0;cursor:pointer}
+.tag small{font-size:.7rem;opacity:.85}
+.tag .x{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.22);font-size:.8rem}
+.allp summary{cursor:pointer;font-size:.82rem;color:var(--muted);padding:4px 0}
+.allp[open] summary{margin-bottom:6px}
+.plist li small{margin-left:6px;color:var(--warn);font-size:.72rem}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:700;height:40px;padding:0 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.sub{background:var(--surface);color:var(--fg);border-color:var(--line)}
+.count{font-family:var(--f-num);font-size:.85rem;color:var(--muted);margin-left:auto}
+.ghost{font:inherit;font-size:.8rem;justify-self:start;margin-top:4px;padding:4px 10px;border-radius:6px;border:1px dashed currentColor;background:transparent;color:inherit;cursor:pointer}
+.rmrow{display:flex;flex-wrap:wrap;gap:4px}
+.rm{font:inherit;font-size:.8rem;padding:2px 8px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer}
+.rm:hover{text-decoration:line-through}
+.memo{white-space:pre-wrap}
+.nbadge{display:inline-block;padding:0 7px;border-radius:5px;background:var(--night-bg);color:var(--night-ink)}
+.c-night .nbadge{background:transparent;color:inherit;padding:0}
+.item.jumpcard{cursor:pointer}
+.item.jumpcard .t::after{content:" ›";opacity:.6}
+.item.jumpcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.item a{color:inherit}
+.erow{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.erow:first-child{border-top:0}
+.erow .sw{margin-top:5px;flex-shrink:0}
+.emain{display:grid;gap:2px;min-width:0;flex:1;font-size:.85rem}
+.emain span{color:var(--muted);overflow-wrap:anywhere}
+.danger{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:6px;border:1px solid var(--warn);background:transparent;color:var(--warn);cursor:pointer;flex-shrink:0}
+.ptable{width:100%;border-collapse:collapse;font-size:.85rem}
+.ptable th,.ptable td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.ptable th{font-size:.75rem;color:var(--muted)}
+.barcol{width:30%}
+.ptable .r{text-align:right;white-space:nowrap}
+.ptable tfoot td{font-weight:700;border-top:2px solid var(--fg);border-bottom:0}
+.ptable tr.idle td{color:var(--muted)}
+.ptable .sub{display:block;font-size:.7rem;color:var(--muted);font-weight:400}
+.ptable .sub.warn{color:var(--warn)}
+.tscroll{overflow-x:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kpi b{white-space:nowrap}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.kpi span{font-size:.75rem;color:var(--muted)}
+.kpi b{font-family:var(--f-num);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.warnline{grid-column:1/-1;margin:0;font-size:.8rem;color:var(--warn)}
+.pbar{display:block;height:8px;border-radius:4px;background:var(--accent);min-width:2px}
+.mrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.mrow .mn{font-weight:700;min-width:5em}
+.mrow mark{background:none;color:var(--accent)}
+.mrow .ma{font-size:.8rem;color:var(--muted);flex:1;min-width:6em}
+.mrow select{font:inherit;font-size:.85rem;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);padding:0 6px}
+.lnk{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.panel h2 small#m-cnt{font-family:var(--f-num)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+  background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.88rem;max-width:calc(100% - 32px);transition:all .2s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.bad{background:var(--warn);color:#fff}
+body.busy{cursor:progress}
+body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
+@media (max-width:720px){ .barcol,.hide-m{display:none} .count{margin-left:0;width:100%} .ptable{font-size:.8rem} .ptable th,.ptable td{padding:7px 4px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>팀 행사 일정</h1>
+      <p id="updated"></p>
+    </div>
+    <div class="nav">
+      <button id="prev" type="button" aria-label="이전 달">‹</button>
+      <div class="month" id="month" aria-live="polite"></div>
+      <button id="next" type="button" aria-label="다음 달">›</button>
+      <button id="today" type="button">오늘</button>
+      <button id="reload" type="button" aria-label="새로고침">↻</button>
+    </div>
+  </header>
+
+  <div class="abar adminonly" role="navigation" aria-label="관리자 메뉴">
+    <span class="badge">관리자</span>
+    <div class="atabs" role="tablist">
+      <button type="button" data-t="cal" role="tab">일정</button>
+      <button type="button" data-t="events" role="tab">행사 관리</button>
+      <button type="button" data-t="people" role="tab">인원·급여</button>
+      <button type="button" data-t="members" role="tab">팀원 관리</button>
+    </div>
+    <button type="button" class="out" id="admexit">나가기</button>
+  </div>
+
+  <section class="panel apanel" id="adm-assign">
+    <h2>배정 입력</h2>
+    <div class="form">
+      <label class="frow"><span>행사</span><select id="a-ev"></select></label>
+      <div class="fgrid">
+        <label class="frow"><span>시작 날짜</span><input type="date" id="a-from"></label>
+        <label class="frow"><span>끝 날짜</span><input type="date" id="a-to"></label>
+        <div class="frow"><span>근무</span>
+          <div class="seg"><label><input type="radio" name="a-shift" value="0" checked><span>주간</span></label><label><input type="radio" name="a-shift" value="1"><span>야간</span></label></div>
+        </div>
+        <label class="frow nightonly"><span>야간 시간제 (시간)</span><input type="number" id="a-hours" min="0" max="24" step="0.5" inputmode="decimal" placeholder="비우면 행사에 정한 대로"></label>
+        <label class="onlyn nightonly" id="a-onlyn-wrap" style="grid-column:1/-1"><input type="checkbox" id="a-onlyn" checked> <span id="a-onlyn-txt">이 행사의 야간 날짜에만 넣기</span></label>
+      </div>
+      <div class="frow"><span>사람 (검색해서 한 명씩 추가)</span>
+        <div class="tags" id="a-tags" aria-live="polite"></div>
+        <div class="combo wide">
+          <input type="text" id="a-q" placeholder="이름 또는 초성 입력 → Enter로 추가" autocomplete="off"
+            role="combobox" aria-expanded="false" aria-controls="a-plist" aria-autocomplete="list">
+          <ul class="plist" id="a-plist" role="listbox" hidden></ul>
+        </div>
+        <details class="allp"><summary>전체 목록에서 고르기</summary><div class="people" id="a-people"></div></details>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="a-add">배정 넣기</button>
+        <button type="button" class="btn sub" id="a-del">이 행사 배정 지우기</button>
+        <button type="button" class="btn sub" id="a-none">선택 해제</button>
+        <span class="count" id="a-count"></span>
+      </div>
+      <p class="foot">행사를 고르면 날짜가 행사 기간으로 채워져요. 고른 사람 × 날짜 칸에 한 번에 들어가고, 다른 행사가 이미 있는 칸은 바꾸기 전에 물어봐요.</p>
+    </div>
+  </section>
+
+  <section class="panel apanel" id="adm-events">
+    <details class="adddet" id="e-adddet"><summary>＋ 새 행사 추가</summary>
+    <form class="form" id="e-form" autocomplete="off">
+      <label class="frow"><span>행사명 *</span><input name="name" required maxlength="80" placeholder="예: 서울 코엑스 ○○전"></label>
+      <div class="fgrid">
+        <label class="frow"><span>종류 *</span><select name="type" required><option value="전시">전시</option><option value="외부">외부</option></select></label>
+        <label class="frow"><span>시작일 *</span><input type="date" name="start" required></label>
+        <label class="frow"><span>종료일 *</span><input type="date" name="end" required></label>
+      </div>
+      <div class="fgrid">
+        <label class="frow"><span>장소</span><input name="place"></label>
+        <label class="frow"><span>담당자</span><input name="manager"></label>
+        <label class="frow"><span>연락처</span><input name="contact" inputmode="tel"></label>
+      </div>
+      <div class="fgrid">
+        <label class="frow"><span>필요 인원 · 주간 (하루 기본)</span><input name="needDay" type="number" min="0" inputmode="numeric" placeholder="예: 5"></label>
+        <label class="frow"><span>필요 인원 · 야간 (하루 기본)</span><input name="needNight" type="number" min="0" inputmode="numeric" placeholder="비우면 없음"></label>
+      </div>
+      <label class="frow"><span>메모</span><textarea name="memo"></textarea></label>
+      <div class="frow"><span>야간 날짜 — 야간이 있는 날만 체크, 시간제면 시간 입력 (비우면 일당)</span>
+        <div class="nights" id="e-nights"><p class="empty">시작일·종료일을 고르면 날짜가 나와요.</p></div></div>
+      <div class="frow"><span>인원 (선택) — 기간 전체에 넣을 사람. 날짜마다 다르면 추가한 뒤 "인원 배정"에서 고치면 돼요</span>
+        <div class="ad-all" style="background:transparent;padding:0">
+          <input list="memlist" id="e-pin" placeholder="이름 입력 → Enter" enterkeyhint="done" style="width:10em">
+          <select id="e-pshift" aria-label="근무" style="width:auto"><option value="0">주간</option><option value="1">야간</option></select>
+          <button type="button" class="ad-more" id="e-padd">추가</button>
+        </div>
+        <div class="tags" id="e-ptags"><span class="hint">아직 고른 사람이 없어요</span></div></div>
+      <div class="actions"><button class="btn" type="submit">행사 추가</button></div>
+    </form>
+    </details>
+    <div class="actions" style="margin-top:8px"><h2 id="e-title" style="margin:0">행사</h2>
+      <div class="mnav"><button type="button" id="e-prev" aria-label="이전 달">‹</button>
+        <input type="month" id="e-month" aria-label="달 고르기"><button type="button" id="e-next" aria-label="다음 달">›</button></div></div>
+    <div class="esearch"><input type="search" id="e-q" placeholder="행사 이름 검색 (모든 달에서 찾기)" autocomplete="off"></div>
+    <datalist id="memlist"></datalist>
+    <div id="e-list"></div>
+  </section>
+
+  <section class="panel apanel" id="adm-people">
+    <div class="actions"><h2 id="p-title" style="margin:0">인원 현황</h2><span class="count">달은 위 ‹ › 로 바꿔요</span></div>
+    <div class="kpis" id="p-sum"></div>
+    <div class="tscroll"><table class="ptable" id="p-table"></table></div>
+    <p class="foot">배정 1칸(주간 또는 야간 1회)을 1회로 세고 일당(전시·외부)을 곱해요. 야간을 시간제로 정한 날(일정 화면 날짜 패널 또는 배정 입력에서 설정)은 그 야간을 시간 × 각자 시급으로 계산해요. 금액은 관리자 화면에서만 보여요.</p>
+  </section>
+
+  <section class="panel apanel" id="adm-members">
+    <h2>팀원 추가 <small id="m-cnt"></small></h2>
+    <form class="form" id="m-form" autocomplete="off">
+      <div class="fgrid">
+        <label class="frow"><span>이름 *</span><input name="name" required maxlength="30" placeholder="예: 홍길동"></label>
+        <label class="frow"><span>이수증</span><select name="cert"><option value="">모름(빈칸)</option><option value="있음">있음</option><option value="없음">없음</option></select></label>
+        <label class="frow"><span>일당(전시)</span><input name="rateExh" inputmode="numeric" placeholder="비우면 100,000원" class="won"></label>
+        <label class="frow"><span>일당(외부)</span><input name="rateOut" inputmode="numeric" placeholder="비우면 90,000원" class="won"></label>
+        <label class="frow"><span>시급(야간 시간제)</span><input name="rateHour" inputmode="numeric" placeholder="비우면 10,000원" class="won"></label>
+      </div>
+      <div class="actions"><button class="btn" type="submit">팀원 추가</button></div>
+    </form>
+    <div class="actions" style="margin-top:8px"><h2 style="margin:0">팀원 목록</h2>
+      <input type="text" id="m-q" class="count" placeholder="이름·초성 검색" autocomplete="off"
+        style="font:inherit;font-size:16px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);padding:0 10px;max-width:12em"></div>
+    <div id="m-list"></div>
+    <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 삭제하면 그 사람의 배정은 지워지고, 아래 사람들의 배정은 그대로 따라 올라가요. 이름 고치기는 배정이 그대로 유지돼요.</p>
+  </section>
+
+  <div class="who calview">
+    <label for="person">누구 일정</label>
+    <div class="combo">
+      <input id="person" type="text" autocomplete="off" placeholder="이름 검색 (전체 보기)"
+        role="combobox" aria-expanded="false" aria-controls="plist" aria-autocomplete="list">
+      <button class="clear" id="pclear" type="button" aria-label="전체 보기로">×</button>
+      <ul class="plist" id="plist" role="listbox" hidden></ul>
+    </div>
+    <span class="mysum" id="mysum"></span>
+  </div>
+
+  <div class="legend calview" id="legend"></div>
+
+  <section class="cal calview" aria-label="월간 일정">
+    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="panel dayonly calview" id="daypanel" aria-live="polite"></section>
+
+  <section class="panel calview">
+    <h2 id="evtitle">이번 달 행사</h2>
+    <div class="list" id="evlist"></div>
+  </section>
+
+  <p class="foot">날짜 숫자에 빨간 테두리가 있으면 이수증이 없는 인원이 들어간 날이에요. 휴대폰에서는 날짜를 누르면 그날 인원이 아래에 나와요. 위 칸에 이름(또는 초성)을 적어 고르면 그 사람 일정만 보여요(다음에 열 때도 기억해요).</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+let DATA = {updated:"", members:[], events:[], assign:[]};
+// 색은 행사 종류로만 구분합니다: 전시 = 파랑, 외부 = 주황, 그 외 = 초록
+const TYPE_CLS = {"전시":"c-blue","외부":"c-orange"};
+const TYPE_ORDER = ["전시","외부"];
+const clsFor = type => TYPE_CLS[String(type||"").trim()] || "c-green";
+let evMap = new Map(), noCert = new Set(), byDate = new Map();
+function setData(d){
+  // 배정은 [날짜, 이름, 0=주간/1=야간, 행사] 배열로 옵니다
+  d.assign = (d.assign||[]).map(a => Array.isArray(a) ? {date:a[0], name:a[1], shift:a[2]?"야간":"주간", event:a[3]} : a);
+  DATA = d;
+  evMap = new Map(DATA.events.map((e,i)=>[e.name,{...e,idx:i,cls:clsFor(e.type)}]));
+  noCert = new Set(DATA.members.filter(m=>!m.cert).map(m=>m.name));
+  byDate = new Map();
+  DATA.assign.forEach(a=>{ if(!byDate.has(a.date)) byDate.set(a.date,[]); byDate.get(a.date).push(a); });
+}
+const pad = n => String(n).padStart(2,"0");
+const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const DOW = ["일","월","화","수","목","금","토"];
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function itemsFor(key){
+  const names = new Set();
+  DATA.events.forEach(e=>{ if(e.start<=key && key<=e.end) names.add(e.name); });
+  (byDate.get(key)||[]).forEach(a=>names.add(a.event));
+  const list = [...names].map(n=>{
+    const ev = evMap.get(n) || {name:n,idx:999,cls:clsFor(""),type:""};
+    const rows = (byDate.get(key)||[]).filter(a=>a.event===n);
+    return {ev, day:rows.filter(a=>a.shift==="주간").map(a=>a.name), night:rows.filter(a=>a.shift==="야간").map(a=>a.name)};
+  });
+  // 한 사람 보기: 그 사람의 주간과 야간을 따로 한 줄씩 (야간은 남색으로 구분)
+  const out = [];
+  if(person) list.forEach(it=>{
+    if(it.day.includes(person)) out.push({...it, mine:"주간"});
+    if(it.night.includes(person)) out.push({...it, mine:"야간", ev:{...it.ev, key:it.ev.name+"#야간", cls:"c-night"}});
+  });
+  else out.push(...list);
+  return out.sort((a,b)=>a.ev.idx-b.ev.idx);
+}
+// 한 사람 보기: 그 사람이 들어간 행사만 보여 줍니다 ("" = 전체)
+let person = "";
+const myShift = it => it.mine || [it.day.includes(person)?"주간":"", it.night.includes(person)?"야간":""].filter(Boolean).join("·");
+const kOf = it => it.ev.key || it.ev.name;   // 막대 줄 맞춤용: 같은 행사라도 야간은 따로
+const others = it => ({day:it.day.filter(n=>n!==person), night:it.night.filter(n=>n!==person)});
+const who = arr => arr.map(n=> noCert.has(n) ? esc(n)+'<span class="miss">(미이수)</span>' : esc(n)).join(", ");
+const hasMiss = items => items.some(it=>[...it.day,...it.night].some(n=>noCert.has(n)));
+
+const now = new Date();
+const todayKey = iso(now);
+let view = new Date(now.getFullYear(), now.getMonth(), 1);
+let selected = todayKey;
+
+function firstEventDay(y,m){
+  const last = new Date(y,m+1,0).getDate();
+  for(let d=1; d<=last; d++){ const k=iso(new Date(y,m,d)); if(itemsFor(k).length) return k; }
+  return iso(new Date(y,m,1));
+}
+
+function render(){
+  const y=view.getFullYear(), m=view.getMonth();
+  document.getElementById("month").textContent = y+"년 "+(m+1)+"월";
+  const first = new Date(y,m,1);
+  const start = new Date(y,m,1-first.getDay());
+  const lastDay = new Date(y,m+1,0);
+  const weeks = Math.ceil((first.getDay()+lastDay.getDate())/7);
+  const grid = document.getElementById("grid");
+  let html = "";
+  const monthEvents = new Map();
+  // 휴대폰 막대: 같은 행사는 한 주 안에서 같은 줄(lane)에 놓아 이어져 보이게 합니다
+  const cellItems = [];
+  for(let i=0;i<weeks*7;i++) cellItems.push(itemsFor(iso(new Date(start.getFullYear(), start.getMonth(), start.getDate()+i))));
+  const MAXL = 4;
+  const laneOf = [];   // 주마다 {행사명: 줄번호}
+  for(let w=0; w<weeks; w++){
+    const days = {};   // 행사명 -> 그 주에 들어간 요일들
+    for(let k=0;k<7;k++) cellItems[w*7+k].forEach(it=>{ (days[kOf(it)] = days[kOf(it)]||[]).push(k); });
+    const names = Object.keys(days).sort((a,b)=> days[a][0]-days[b][0] || days[b].length-days[a].length || (evMap.get(a.replace("#야간",""))?.idx??999)-(evMap.get(b.replace("#야간",""))?.idx??999) || (a<b?-1:1));
+    const used = [], lanes = {};
+    names.forEach(n=>{ let l=0; while(days[n].some(k=>used[l]&&used[l].has(k))) l++;
+      (used[l]=used[l]||new Set()); days[n].forEach(k=>used[l].add(k)); lanes[n]=l; });
+    laneOf.push(lanes);
+  }
+  const has = (i, key) => i>=0 && i<cellItems.length && cellItems[i].some(it=>kOf(it)===key);
+  for(let i=0;i<weeks*7;i++){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i);
+    const key = iso(d), inMonth = d.getMonth()===m;
+    const items = cellItems[i];
+    if(inMonth) items.forEach(it=>monthEvents.set(it.ev.name, evMap.get(it.ev.name) || it.ev));
+    const cls = ["day", inMonth?"":"out", d.getDay()===0?"sun":"", d.getDay()===6?"sat":"",
+      key===todayKey?"today":"", key===selected?"sel":"", (!person&&hasMiss(items))?"warn":""].join(" ");
+    const chips = person ? items.map(it=>
+      '<div class="chip '+it.ev.cls+'"><b>'+esc(it.ev.name)+'</b><span class="shift">'+myShift(it)+'</span></div>').join("") : items.map(it=>{
+      const dayTxt = it.day.length ? '<span class="n">'+who(it.day)+'</span>' : (it.night.length?'':'<span class="n none">미배정</span>');
+      const nightTxt = it.night.length ? '<span class="night">야간 '+who(it.night)+'</span>' : '';
+      return '<div class="chip '+it.ev.cls+'"><b>'+esc(it.ev.name)+'</b>'+dayTxt+nightTxt+'</div>';
+    }).join("");
+    const lanes = laneOf[Math.floor(i/7)], dow = i%7;
+    const slot = new Array(MAXL).fill('<span class="bar empty"></span>');
+    let hidden = 0, top = -1;
+    items.forEach(it=>{
+      const kk = kOf(it), l = lanes[kk];
+      if(l>=MAXL){ hidden++; return; }
+      const fromL = dow>0 && has(i-1, kk), toR = dow<6 && has(i+1, kk);
+      let run = 1; if(!fromL) while(dow+run<7 && has(i+run, kk)) run++;
+      // 이어지는 첫 칸에만 행사 이름을 짧게 적어요
+      slot[l] = '<span class="bar '+it.ev.cls+(fromL?' cl':'')+(toR?' cr':'')+'" style="--run:'+run+'">'+(fromL?'':'<em>'+(it.mine==="야간"?"야간 ":"")+esc(it.ev.name)+'</em>')+'</span>';
+      top = Math.max(top, l);
+    });
+    const bars = slot.slice(0, top+1).join("") + (hidden ? '<span class="more">+'+hidden+'</span>' : '');
+    const label = (d.getMonth()+1)+"월 "+d.getDate()+"일 "+DOW[d.getDay()]+"요일, 행사 "+items.length+"건";
+    html += '<button type="button" class="'+cls+'" data-key="'+key+'" aria-label="'+label+'">'+
+      '<span class="num">'+d.getDate()+'</span>'+(inMonth && typeof ADM!=="undefined" && dayShort(key, cellItems[i])?'<span class="short-dot" title="인원 부족"></span>':'')+'<div class="chips">'+chips+'</div><div class="bars">'+bars+'</div></button>';
+  }
+  grid.innerHTML = html;
+
+  const legend = document.getElementById("legend");
+  const hasNightThisMonth = person && cellItems.some((its,i)=>{ const dd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i); return dd.getMonth()===m && its.some(it=>it.mine==="야간"); });
+  const typeCount = {};
+  monthEvents.forEach(e=>{ const t = TYPE_CLS[String(e.type||"").trim()] ? String(e.type).trim() : "기타"; typeCount[t]=(typeCount[t]||0)+1; });
+  legend.innerHTML = [...TYPE_ORDER, "기타"].filter(t=>t!=="기타" || typeCount[t])
+    .map(t=>'<span><i class="sw '+clsFor(t==="기타"?"":t)+'"></i>'+t+' <em class="lgn">'+(typeCount[t]||0)+'건</em></span>').join("")
+    + (person && hasNightThisMonth ? '<span><i class="sw c-night"></i>야간 근무</span>' : '');
+
+  // 한 사람 보기일 때: 이번 달 근무 요약과 행사별 근무일 수
+  const myDays = new Map(); let nDay=0, nNight=0; const workDates = new Set();
+  if(person){
+    for(let dd=1; dd<=lastDay.getDate(); dd++){
+      const k = iso(new Date(y,m,dd));
+      itemsFor(k).forEach(it=>{
+        workDates.add(k);
+        it.mine==="야간" ? nNight++ : nDay++;
+        if(!myDays.has(it.ev.name)) myDays.set(it.ev.name, new Set());
+        myDays.get(it.ev.name).add(k);
+      });
+    }
+  }
+  document.getElementById("mysum").innerHTML = person
+    ? (m+1)+'월 근무 <b>'+workDates.size+'</b>일 · 주간 <b>'+nDay+'</b> · 야간 <b>'+nNight+'</b>'
+    : '';
+  document.getElementById("evtitle").textContent = person ? person+"님의 이번 달 행사" : "이번 달 행사";
+
+  const evlist = document.getElementById("evlist");
+  const mm = d => { const [yy,mo,dd]=d.split("-"); return Number(mo)+"/"+Number(dd)+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
+  evlist.innerHTML = [...monthEvents.values()].sort((a,b)=>(a.start||"").localeCompare(b.start||""))
+    .map(e=>'<div class="ev'+(ADM.token?' jump':'')+'" data-jump="'+esc(e.name)+'"'+(ADM.token?' role="button" tabindex="0"':'')+'><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
+    || '<p class="empty">'+(person?esc(person)+'님은 이번 달 배정된 일정이 없어요.':'이번 달에는 등록된 행사가 없어요.')+'</p>';
+
+  renderDay();
+  if(typeof ADM!=='undefined' && ADM.token && ADM.tab!=='cal') admRenderPanels();
+}
+
+function renderDay(){
+  const p = document.getElementById("daypanel");
+  const [yy,mo,dd] = selected.split("-").map(Number);
+  const d = new Date(yy,mo-1,dd);
+  const items = itemsFor(selected);
+  // 한 사람 보기: 같은 행사의 주간·야간은 카드 하나로 합쳐서 보여 줌
+  let pItems = items;
+  if(person){
+    const byName = new Map();
+    items.forEach(it=>{
+      const n = it.ev.name;
+      if(!byName.has(n)) byName.set(n, {...it, ev: evMap.get(n) || {...it.ev, cls: clsFor(it.ev.type)}, mines: []});
+      byName.get(n).mines.push(it.mine);
+    });
+    pItems = [...byName.values()];
+  }
+  const nEv = person ? pItems.length : items.length;
+  let html = '<h2>'+mo+'월 '+dd+'일 '+DOW[d.getDay()]+'요일<small>'+(nEv?"행사 "+nEv+"건":"")+'</small></h2>';
+  if(!items.length){ html += '<p class="empty">'+(person?esc(person)+'님은 이날 일정이 없어요.':'이날은 일정이 없어요.')+'</p>'; }
+  else if(ADM.token && !person) html += items.map(admDayExtra).join("");
+  else if(person) html += pItems.map(it=>{ const o = others(it);
+    const onlyNight = it.mines.length===1 && it.mines[0]==="야간";
+    const jump = (typeof ADM!=="undefined" && ADM.token) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동' : '';
+    const shiftTxt = it.mines.map(m=> m==="야간" ? '<span class="nbadge">야간</span>' : '주간').join(" · ");
+    return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
+    '<span class="k">근무</span><span class="v"><b>'+shiftTxt+'</b></span>'+
+    '<span class="k">함께 주간</span><span class="v">'+(o.day.length?who(o.day):"-")+'</span>'+
+    '<span class="k">함께 야간</span><span class="v">'+(o.night.length?who(o.night):"-")+'</span>'+
+    (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+'</div>'; }).join("");
+  else html += items.map(it=>
+    '<div class="item '+it.ev.cls+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
+    '<span class="k">주간</span><span class="v">'+(it.day.length?who(it.day):"-")+'</span>'+
+    '<span class="k">야간</span><span class="v">'+(it.night.length?who(it.night):"-")+'</span>'+
+    (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+
+    (!it.day.length&&!it.night.length?'<span class="meta">아직 배정된 인원이 없어요.</span>':'')+'</div>').join("");
+  p.innerHTML = html;
+}
+
+document.getElementById("evlist").addEventListener("click", e=>{
+  const j = e.target.closest("[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+document.getElementById("daypanel").addEventListener("keydown", e=>{
+  if(e.key!=="Enter") return; const j = e.target.closest(".jumpcard[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+document.getElementById("evlist").addEventListener("keydown", e=>{
+  if(e.key!=="Enter") return; const j = e.target.closest("[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+document.getElementById("grid").addEventListener("click", e=>{
+  const b = e.target.closest(".day"); if(!b) return;
+  selected = b.dataset.key;
+  const [yy,mo] = selected.split("-").map(Number);
+  if(mo-1!==view.getMonth()){ view = new Date(yy,mo-1,1); }
+  render();
+  if(window.matchMedia("(max-width:720px)").matches){
+    document.getElementById("daypanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+});
+document.getElementById("prev").onclick = ()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); selected=firstEventDay(view.getFullYear(),view.getMonth()); render(); };
+document.getElementById("next").onclick = ()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); selected=firstEventDay(view.getFullYear(),view.getMonth()); render(); };
+document.getElementById("today").onclick = ()=>{ view=new Date(now.getFullYear(),now.getMonth(),1); selected=todayKey; render(); };
+
+
+function showUpdated(){ document.getElementById("updated").textContent = DATA.updated+" 기준 · 시트와 자동 연결"; }
+// fresh=true(↻ 버튼)면 저장본을 건너뛰고 시트에서 바로 읽습니다.
+function load(fresh){
+  const up = document.getElementById("updated");
+  if(fresh) up.textContent = "새로 불러오는 중…";
+  const run = google.script.run
+    .withSuccessHandler(d=>{ setData(d); fillPeople(); showUpdated(); render(); })
+    .withFailureHandler(err=>{ up.textContent = "일정을 불러오지 못했어요. 새로고침해 주세요. ("+err.message+")"; });
+  if(ADM.token) run.withSuccessHandler(d=>{ admApply(d); }).adminGetData(ADM.token);
+  else fresh ? run.refreshData() : run.getData();
+}
+document.getElementById("reload").onclick = ()=>load(true);
+
+// ---- 한 사람 보기 ----
+const pin = document.getElementById("person"), plist = document.getElementById("plist");
+let NAMES = [], matches = [];
+function fillPeople(){
+  NAMES = DATA.members.map(m=>m.name);
+  if(person && !NAMES.includes(person)) NAMES.push(person);
+}
+// 초성 검색: "ㅎㅇㄹ" 로도 "홍우람"을 찾을 수 있어요
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const cho = s => [...s].map(c=>{ const k=c.charCodeAt(0)-0xAC00; return (k>=0&&k<11172) ? CHO[Math.floor(k/588)] : c; }).join("");
+const isCho = q => [...q].every(c=>CHO.includes(c));
+function matchName(n, q){
+  if(!q) return true;
+  return n.toLowerCase().includes(q.toLowerCase()) || (isCho(q) && cho(n).includes(q));
+}
+function hl(n, q){
+  if(!q) return esc(n);
+  let i = n.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0 && isCho(q)) i = cho(n).indexOf(q);
+  if(i<0) return esc(n);
+  return esc(n.slice(0,i))+'<mark>'+esc(n.slice(i,i+q.length))+'</mark>'+esc(n.slice(i+q.length));
+}
+function openList(){
+  const q = pin.value.trim();
+  const pos = n => { let i=n.toLowerCase().indexOf(q.toLowerCase()); if(i<0&&isCho(q)) i=cho(n).indexOf(q); return i; };
+  matches = NAMES.filter(n=>matchName(n,q)).sort((a,b)=>pos(a)-pos(b));   // 앞글자부터 맞는 이름을 위로
+  plist.innerHTML = (q ? '' : '<li data-n="" role="option">전체 보기</li>') +
+    (matches.map((n,i)=>'<li data-n="'+esc(n)+'" role="option"'+(q&&i===0?' class="act"':'')+'>'+hl(n,q)+'</li>').join("")
+     || '<li class="none">"'+esc(q)+'" 이름이 없어요</li>');
+  plist.hidden = false; pin.setAttribute("aria-expanded","true");
+}
+function closeList(){ plist.hidden = true; pin.setAttribute("aria-expanded","false"); }
+function moveAct(d){
+  const items=[...plist.querySelectorAll("li[data-n]")]; if(!items.length) return;
+  const cur = items.findIndex(li=>li.classList.contains("act"));
+  const next = cur<0 ? (d>0?0:items.length-1) : (cur+d+items.length)%items.length;
+  items.forEach((li,i)=>li.classList.toggle("act", i===next));
+  items[next].scrollIntoView({block:"nearest"});
+}
+function choose(n){ closeList(); pin.blur(); setPerson(n); }
+pin.addEventListener("focus", ()=>{ pin.value = ""; openList(); });
+pin.addEventListener("input", openList);
+pin.addEventListener("keydown", e=>{
+  if(e.isComposing) return;   // 한글 조합 중에는 Enter를 무시
+  if(e.key==="ArrowDown"){ e.preventDefault(); if(plist.hidden) openList(); else moveAct(1); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); moveAct(-1); }
+  else if(e.key==="Enter"){ e.preventDefault();
+    const a = plist.querySelector("li.act[data-n]");
+    if(a) choose(a.dataset.n);
+    else if(!pin.value.trim()) choose("");
+    else if(matches.length===1) choose(matches[0]);
+    else if(!matches.length) tryAdmin(pin.value.trim()); }
+  else if(e.key==="Escape"){ closeList(); pin.blur(); }
+});
+// 목록 누르기 (mousedown이라 입력칸에서 포커스가 빠지기 전에 선택돼요)
+plist.addEventListener("mousedown", e=>{ const li=e.target.closest("li[data-n]"); if(!li) return; e.preventDefault(); choose(li.dataset.n); });
+pin.addEventListener("blur", ()=>setTimeout(()=>{ if(document.activeElement!==pin){ closeList(); pin.value = person; } },150));
+document.getElementById("pclear").addEventListener("mousedown", e=>{ e.preventDefault(); closeList(); pin.blur(); setPerson(""); });
+
+function setPerson(n, keepSelected){
+  person = n || "";
+  pin.value = person;
+  document.querySelector(".who").classList.toggle("on", !!person);
+  try { person ? localStorage.setItem("teamCalPerson", person) : localStorage.removeItem("teamCalPerson"); } catch(e){}
+  // 주소창에 ?name=이름 을 붙여 두면 그 주소를 즐겨찾기해서 바로 내 일정으로 열 수 있어요
+  try { google.script.history.replace(null, person?{name:person}:{}, ""); } catch(e){}
+  if(!keepSelected) selected = (view.getMonth()===now.getMonth()&&view.getFullYear()===now.getFullYear()) ? todayKey : firstEventDay(view.getFullYear(),view.getMonth());
+  render();
+}
+
+// ================= 관리자 모드 =================
+// 이름 검색 칸에 관리자 코드를 적고 Enter → 서버가 코드를 확인하고 열쇠(token)를 줍니다.
+const ADM = { token:"", tab:"cal" };
+const $ = id => document.getElementById(id);
+const run = () => google.script.run;
+function toast(msg, bad){
+  const t = $("toast"); t.textContent = msg; t.className = "toast show"+(bad?" bad":"");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.className="toast", 3500);
+}
+function busy(on){ document.body.classList.toggle("busy", !!on); }
+function admFail(err){ busy(false); toast(err && err.message ? err.message : String(err), true);
+  if(String(err && err.message).includes("만료")) admExit(true); }
+
+function tryAdmin(code){
+  if(!code) return;
+  busy(true);
+  run().withSuccessHandler(r=>{
+    busy(false);
+    if(r && r.ok){ closeList(); pin.blur(); admEnter(r.token, r.data); }
+    else if(r && r.locked){ toast("잠시 후 다시 시도해 주세요.", true); }
+    else { plist.innerHTML = '<li class="none">"'+esc(code)+'" 이름이 없어요</li>'; plist.hidden=false; }
+  }).withFailureHandler(admFail).adminLogin(code);
+}
+function admEnter(token, data){
+  ADM.token = token;
+  try { sessionStorage.setItem("teamCalAdm", token); } catch(e){}
+  document.body.classList.add("admin");
+  person = ""; pin.value = ""; document.querySelector(".who").classList.remove("on");
+  admApply(data);
+  admTab("cal");
+  toast("관리자 모드로 들어왔어요.");
+}
+function admExit(silent){
+  if(ADM.token) try { run().adminLogout(ADM.token); } catch(e){}
+  ADM.token = "";
+  try { sessionStorage.removeItem("teamCalAdm"); } catch(e){}
+  document.body.classList.remove("admin");
+  admTab("cal");
+  load(false);
+  if(!silent) toast("관리자 모드를 나왔어요.");
+}
+function admApply(data){ setData(data); fillPeople(); showUpdated(); admFillForms(); render(); }
+function admTab(t){
+  ADM.tab = t;
+  document.querySelectorAll(".atabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.t===t ? "true":"false"));
+  document.body.dataset.tab = t;
+  if(t!=="cal") admRenderPanels();
+}
+document.querySelectorAll(".atabs button").forEach(b=>b.addEventListener("click", ()=>admTab(b.dataset.t)));
+$("admexit").addEventListener("click", ()=>admExit());
+
+// ---------- 배정 입력 ----------
+const aSel = new Set();
+function eventsSorted(){ return [...DATA.events].sort((a,b)=>(a.start||"").localeCompare(b.start||"") || a.name.localeCompare(b.name)); }
+function admFillForms(){
+  const cur = $("a-ev").value;
+  const evs = eventsSorted();
+  const mm = s => s ? Number(s.slice(5,7))+"/"+Number(s.slice(8,10)) : "";
+  $("a-ev").innerHTML = '<option value="">행사 선택</option>' +
+    evs.map(e=>'<option value="'+esc(e.name)+'">'+esc(mm(e.start)+(e.end!==e.start?"–"+mm(e.end):""))+'  '+esc(e.name)+'</option>').join("");
+  if(evs.some(e=>e.name===cur)) $("a-ev").value = cur;
+  setTimeout(()=>{ try{ updOnlyN(); }catch(e){} });
+  admPeopleChips();
+}
+function admPeopleChips(){
+  const names = DATA.members.map(m=>m.name);
+  $("a-people").innerHTML = names.map(n=>'<button type="button" class="pchip'+(aSel.has(n)?" on":"")+'" data-n="'+esc(n)+'" aria-pressed="'+aSel.has(n)+'">'+esc(n)+(noCert.has(n)?'<small>미이수</small>':'')+'</button>').join("")
+    || '<p class="empty">맞는 이름이 없어요.</p>';
+  admCount();
+}
+function datesBetween(a,b){
+  const out=[]; if(!a||!b||b<a) return out;
+  const [y,m,d]=a.split("-").map(Number); let t=new Date(y,m-1,d);
+  for(let k=iso(t); k<=b && out.length<62; t=new Date(t.getFullYear(),t.getMonth(),t.getDate()+1), k=iso(t)) out.push(k);
+  return out;
+}
+function admCount(){
+  const days = datesBetween($("a-from").value, $("a-to").value).length;
+  $("a-count").textContent = aSel.size+"명 × "+days+"일 = "+(aSel.size*days)+"칸";
+  $("a-tags").innerHTML = aSel.size
+    ? [...aSel].map(n=>'<button type="button" class="tag" data-n="'+esc(n)+'" aria-label="'+esc(n)+' 빼기">'+esc(n)+(noCert.has(n)?'<small>미이수</small>':'')+'<span class="x" aria-hidden="true">×</span></button>').join("")
+    : '<span class="hint">아직 고른 사람이 없어요</span>';
+}
+$("a-ev").addEventListener("change", ()=>{
+  const e = DATA.events.find(x=>x.name===$("a-ev").value);
+  if(e){ $("a-from").value = e.start; $("a-to").value = e.end; }
+  admCount();
+});
+["a-from","a-to"].forEach(id=>$(id).addEventListener("change", ()=>{
+  if($("a-to").value < $("a-from").value) $("a-to").value = $("a-from").value; admCount(); }));
+// 사람 검색해서 추가: 글자/초성 입력 → 목록에서 누르거나 Enter
+const aq = $("a-q"), apl = $("a-plist");
+let aMatches = [];
+function aOpen(){
+  const q = aq.value.trim();
+  if(!q){ aClose(); return; }   // 글자를 적을 때만 목록을 띄워서 아래 버튼을 가리지 않게
+  const pos = n => { let i=n.toLowerCase().indexOf(q.toLowerCase()); if(i<0&&isCho(q)) i=cho(n).indexOf(q); return i; };
+  aMatches = DATA.members.map(m=>m.name).filter(n=>!aSel.has(n) && matchName(n,q)).sort((a,b)=>q?pos(a)-pos(b):0);
+  apl.innerHTML = aMatches.map((n,i)=>'<li data-n="'+esc(n)+'" role="option"'+(i===0?' class="act"':'')+'>'+hl(n,q)+(noCert.has(n)?'<small>미이수</small>':'')+'</li>').join("")
+    || '<li class="none">'+(q?'"'+esc(q)+'" 이름이 없어요':'모두 골랐어요')+'</li>';
+  apl.hidden = false; aq.setAttribute("aria-expanded","true");
+}
+function aClose(){ apl.hidden = true; aq.setAttribute("aria-expanded","false"); }
+function aPick(n){
+  if(!n) return;
+  aSel.add(n); aq.value = ""; admPeopleChips(); aOpen(); aq.focus();
+}
+aq.addEventListener("focus", aOpen);
+aq.addEventListener("input", aOpen);
+aq.addEventListener("keydown", e=>{
+  if(e.isComposing) return;
+  const items=[...apl.querySelectorAll("li[data-n]")];
+  const cur = items.findIndex(li=>li.classList.contains("act"));
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); if(!items.length) return;
+    const nx = (cur + (e.key==="ArrowDown"?1:-1) + items.length) % items.length;
+    items.forEach((li,i)=>li.classList.toggle("act",i===nx)); items[nx].scrollIntoView({block:"nearest"}); }
+  else if(e.key==="Enter"){ e.preventDefault(); if(aq.value.trim() && cur>=0) aPick(items[cur].dataset.n); }
+  else if(e.key==="Backspace" && !aq.value && aSel.size){ aSel.delete([...aSel].pop()); admPeopleChips(); aOpen(); }
+  else if(e.key==="Escape"){ aClose(); aq.blur(); }
+});
+apl.addEventListener("mousedown", e=>{ const li=e.target.closest("li[data-n]"); if(!li) return; e.preventDefault(); aPick(li.dataset.n); });
+aq.addEventListener("blur", ()=>setTimeout(()=>{ if(document.activeElement!==aq) aClose(); },150));
+$("a-tags").addEventListener("click", e=>{ const t=e.target.closest(".tag"); if(!t) return; aSel.delete(t.dataset.n); admPeopleChips(); });
+$("a-people").addEventListener("click", e=>{
+  const b = e.target.closest(".pchip"); if(!b) return;
+  const n = b.dataset.n; aSel.has(n) ? aSel.delete(n) : aSel.add(n);
+  b.classList.toggle("on"); b.setAttribute("aria-pressed", aSel.has(n)); admCount();
+});
+$("a-none").addEventListener("click", ()=>{ aSel.clear(); admPeopleChips(); });
+document.querySelectorAll('input[name="a-shift"]').forEach(r=>r.addEventListener("change", ()=>{
+  $("adm-assign").classList.toggle("night", document.querySelector('input[name="a-shift"]:checked').value==="1"); updOnlyN(); }));
+function updOnlyN(){
+  const nn = nightsOf($("a-ev").value), ks = Object.keys(nn).sort();
+  $("a-onlyn-wrap").style.display = ks.length ? "" : "none";
+  $("a-onlyn-txt").textContent = "이 행사의 야간 날짜에만 넣기 ("+ks.map(k=>Number(k.slice(5,7))+"/"+Number(k.slice(8,10))).join(", ")+")";
+}
+$("a-ev").addEventListener("change", updOnlyN);
+function admSubmit(remove, overwrite){
+  const ev = $("a-ev").value;
+  const shift = document.querySelector('input[name="a-shift"]:checked').value === "1" ? 1 : 0;
+  let dates = datesBetween($("a-from").value, $("a-to").value);
+  const nn = nightsOf(ev);
+  if(shift && Object.keys(nn).length && $("a-onlyn").checked) dates = dates.filter(d=>d in nn);
+  if(!ev) return toast("행사를 골라 주세요.", true);
+  if(!dates.length) return toast("날짜를 확인해 주세요.", true);
+  if(!aSel.size) return toast("사람을 한 명 이상 골라 주세요.", true);
+  if(remove && !confirm(ev+"\n"+[...aSel].join(", ")+"\n"+dates.length+"일의 "+(shift?"야간":"주간")+" 배정을 지울까요?")) return;
+  busy(true);
+  run().withSuccessHandler(r=>{
+    busy(false);
+    if(!r.ok && r.conflicts){
+      const list = r.conflicts.slice(0,12).map(c=>"· "+c.date.slice(5)+" "+c.name+" → 이미 「"+c.current+"」").join("\n");
+      if(confirm("이미 다른 행사가 들어간 칸이 "+r.conflicts.length+"개 있어요.\n"+list+(r.conflicts.length>12?"\n…":"")+"\n\n이 칸들도 「"+ev+"」로 바꿀까요?")) admSubmit(false, true);
+      return;
+    }
+    admApply(r.data);
+    toast((remove?"지운 칸 ":"넣은 칸 ")+r.changed+"개"+(!remove&&shift&&$("a-hours").value?" · 야간 "+$("a-hours").value+"시간제":"")+(r.missing&&r.missing.length?" · 팀원 명단에 없는 이름 "+r.missing.length+"명은 건너뜀":""));
+  }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates, names:[...aSel], shift, event: remove?"":ev, onlyEvent: remove?ev:"", overwrite:!!overwrite,
+      nightHours: (!remove && shift) ? $("a-hours").value : ""});
+}
+$("a-add").addEventListener("click", ()=>admSubmit(false,false));
+$("a-del").addEventListener("click", ()=>admSubmit(true,false));
+
+// 일정 화면의 날짜 패널: 카드를 누르면 그 행사 관리로 이동 (수정은 행사 관리 · 배정 입력에서만)
+$("daypanel").addEventListener("click", e=>{
+  if(e.target.closest("a")) return;   // 연락처 전화 걸기는 그대로
+  const jp = e.target.closest("[data-jump]");
+  if(jp && ADM.token) jumpToEvent(jp.dataset.jump, selected);
+});
+// 필요 인원: 그 날짜 값(필요인원 탭) → 없으면 행사 기본(M·N)
+function needFor(date, name){
+  const ev = DATA.events.find(x=>x.name===name)||{}, o = (DATA.needOv||{})[date+"|"+name]||[null,null];
+  return [o[0]??ev.needDay??null, o[1]??ev.needNight??null];
+}
+function needLine(date, it){
+  const [nd, nn] = needFor(date, it.ev.name);
+  if(nd==null && nn==null) return '<span class="needl">필요 인원 미입력</span>';
+  const part = (lab, need, got) => need==null ? '' : '<span>'+lab+' 필요 <b>'+need+'</b> · 배정 <b>'+got+'</b> '+
+    (got<need ? '<span class="bad">'+(need-got)+'명 부족</span>' : got>need ? '<span class="bad" style="color:#b26a00">'+(got-need)+'명 초과</span>' : '<span class="ok">OK</span>')+'</span>';
+  return '<span class="needl">'+part("주간", nd, it.day.length)+part("야간", nn, it.night.length)+'</span>';
+}
+function dayShort(date, items){
+  if(!ADM.token) return false;
+  return items.some(it=>{ const [nd,nn] = needFor(date, it.ev.name); return (nd!=null && it.day.length<nd) || (nn!=null && it.night.length<nn); });
+}
+function jumpToEvent(name, date){
+  const ev = DATA.events.find(x=>x.name===name);
+  let base = date ? new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1) : null;
+  if(!base && ev){
+    const vs = iso(new Date(view.getFullYear(), view.getMonth(), 1)), ve = iso(new Date(view.getFullYear(), view.getMonth()+1, 0));
+    base = (ev.start<=ve && ev.end>=vs) ? new Date(view.getFullYear(), view.getMonth(), 1) : new Date(Number(ev.start.slice(0,4)), Number(ev.start.slice(5,7))-1, 1);
+  }
+  if(base) ADM.evM = base;
+  ADM.openBox = null;
+  $("e-q").value = "";
+  admTab("events");
+  admRenderPanels();
+  const row = [...document.querySelectorAll("[data-evrow]")].find(x=>x.dataset.evrow===name);
+  if(row){ row.scrollIntoView({behavior:"smooth", block:"center"}); row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash"); }
+}
+function admDayExtra(it){
+  const e = it.ev;
+  const names = arr => arr.length ? who(arr) : "-";
+  const NHm = DATA.nightHours||{}, key = selected+'|'+e.name, planned = key in NHm, h = NHm[key];
+  return '<div class="item '+e.cls+' jumpcard" data-jump="'+esc(e.name)+'" role="button" tabindex="0" title="행사 관리로 이동">'+
+    '<span class="t" style="grid-column:1/-1">'+esc(e.name)+'</span>'+
+    needLine(selected, it)+
+    '<span class="k">주간</span><span class="v">'+names(it.day)+'</span>'+
+    '<span class="k">야간</span><span class="v">'+names(it.night)+'</span>'+
+    ((it.night.length || planned) ? '<span class="nh">'+(planned?'야간 예정':'야간')+' · '+(h?'<b>'+h+'시간</b> × 각자 시급':'일당')+(planned&&!it.night.length?' · <span class="miss">미배정</span>':'')+'</span>' : '')+
+    (e.place?'<span class="k">장소</span><span class="v">'+esc(e.place)+'</span>':'')+
+    (e.manager||e.contact?'<span class="k">담당</span><span class="v">'+esc(e.manager||"")+(e.contact?' · <a href="tel:'+esc(e.contact.replace(/[^0-9+]/g,""))+'">'+esc(e.contact)+'</a>':'')+'</span>':'')+
+    (e.memo?'<span class="k">메모</span><span class="v memo">'+esc(e.memo)+'</span>':'')+'</div>';
+}
+
+// ---------- 행사 관리 ----------
+// ---------- 야간 날짜 편집 (행사 추가 / 행사 목록에서 공용) ----------
+const md = k => { const [yy,mo,dd]=k.split("-").map(Number); return mo+"/"+dd+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
+function nightsOf(ev){ const out={}; Object.entries(DATA.nightHours||{}).forEach(([k,h])=>{ const i=k.indexOf("|"); if(k.slice(i+1)===ev) out[k.slice(0,i)]=h; }); return out; }
+function nightRowsHTML(start, end, cur){
+  const ds = datesBetween(start, end);
+  if(!ds.length) return '<p class="empty">시작일·종료일을 고르면 날짜가 나와요.</p>';
+  return ds.map(d=>{ const on = d in cur, h = cur[d]||"";
+    return '<div class="nrow"><input type="checkbox" data-d="'+d+'" aria-label="'+md(d)+' 야간"'+(on?' checked':'')+'>'+
+      '<span>'+md(d)+'</span><input type="number" data-h="'+d+'" min="0" max="24" step="0.5" inputmode="decimal" placeholder="일당 · 시간 입력" value="'+h+'"'+(on?'':' disabled')+'></div>'; }).join("");
+}
+function readNights(box){ return [...box.querySelectorAll("input[data-d]:checked")].map(c=>({date:c.dataset.d, hours: box.querySelector('[data-h="'+c.dataset.d+'"]').value})); }
+function wireNightBox(box){
+  box.addEventListener("change", e=>{ const c=e.target.closest("input[data-d]"); if(!c) return;
+    const h = box.querySelector('[data-h="'+c.dataset.d+'"]'); h.disabled = !c.checked; if(c.checked) h.focus(); });
+}
+wireNightBox($("e-nights"));
+function refreshAddNights(){
+  const f = $("e-form").elements, keep = {};
+  readNights($("e-nights")).forEach(n=>keep[n.date]=n.hours);
+  $("e-nights").innerHTML = nightRowsHTML(f.start.value, f.end.value, keep);
+}
+["start","end"].forEach(n=>$("e-form").elements[n].addEventListener("change", ()=>setTimeout(refreshAddNights)));
+
+// 행사 추가 때 같이 넣을 인원 (기간 전체)
+const ePeople = [];   // [{name, shift}]
+function drawPTags(){
+  $("e-ptags").innerHTML = ePeople.length
+    ? ePeople.map((p,i)=>'<button type="button" class="tag" data-pi="'+i+'" aria-label="'+esc(p.name)+' 빼기">'+esc(p.name)+'<small>'+(p.shift?'야간':'주간')+'</small><span class="x" aria-hidden="true">×</span></button>').join("")
+    : '<span class="hint">아직 고른 사람이 없어요</span>';
+}
+function addPTag(){
+  const v = $("e-pin").value.trim(); if(!v) return;
+  if(!DATA.members.some(m=>m.name===v)) return toast("팀원 명단에 없는 이름이에요: "+v, true);
+  const sh = Number($("e-pshift").value);
+  if(!ePeople.some(p=>p.name===v && p.shift===sh)) ePeople.push({name:v, shift:sh});
+  $("e-pin").value = ""; drawPTags(); $("e-pin").focus();
+}
+$("e-padd").addEventListener("click", addPTag);
+$("e-pin").addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.isComposing){ e.preventDefault(); addPTag(); } });
+$("e-pin").addEventListener("input", e=>{ if(e.inputType==="insertReplacementText") addPTag(); });
+$("e-ptags").addEventListener("click", e=>{ const t=e.target.closest("[data-pi]"); if(!t) return; ePeople.splice(Number(t.dataset.pi),1); drawPTags(); });
+
+$("e-form").addEventListener("submit", ev=>{
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData($("e-form")).entries());
+  if(f.end < f.start) return toast("종료일이 시작일보다 빨라요.", true);
+  f.nights = readNights($("e-nights"));
+  const people = ePeople.slice(), name = f.name.trim(), days = datesBetween(f.start, f.end);
+  const finish = (data, msg) => {
+    busy(false); $("e-form").reset(); ePeople.length = 0; drawPTags(); refreshAddNights(); $("e-adddet").open = false;
+    admApply(data); toast(msg);
+    // 새 행사로 이동해서 인원 배정 창을 열어 둠 (날짜마다 다르면 여기서 바로 고치면 돼요)
+    jumpToEvent(name); ADM.openBox = name; admRenderPanels();
+    const row = [...document.querySelectorAll("[data-evrow]")].find(x=>x.dataset.evrow===name);
+    if(row) row.scrollIntoView({block:"start"});
+  };
+  // 사람을 주간/야간별로 묶어 차례로 넣음
+  const groups = [0,1].map(sh=>({shift:sh, names: people.filter(p=>p.shift===sh).map(p=>p.name)})).filter(g=>g.names.length);
+  const putPeople = (i, data, overwrite) => {
+    if(i>=groups.length) return finish(data, "「"+name+"」 행사를 추가했어요."+(people.length?" (인원 "+people.length+"명)":"")+(f.nights.length?" (야간 "+f.nights.length+"일)":""));
+    const g = groups[i];
+    run().withSuccessHandler(r=>{
+      if(!r.ok && r.conflicts){
+        const list = r.conflicts.slice(0,8).map(c=>"· "+c.date.slice(5)+" "+c.name+" → 이미 「"+c.current+"」").join("\n");
+        if(confirm("이미 다른 행사에 배정된 칸이 "+r.conflicts.length+"개 있어요.\n"+list+"\n\n「"+name+"」(으)로 바꿀까요? (취소하면 그 칸만 빼고 넣어요)")) return putPeople(i, data, true);
+        // 취소: 겹치지 않는 칸만 넣기
+        const busyKey = new Set(r.conflicts.map(c=>c.date+"|"+c.name));
+        const free = days.flatMap(d=>g.names.filter(n=>!busyKey.has(d+"|"+n)).map(n=>[d,n]));
+        const byName = {}; free.forEach(([d,n])=>(byName[n]=byName[n]||[]).push(d));
+        const names = Object.keys(byName);
+        const step = (k, dd) => { if(k>=names.length) return putPeople(i+1, dd, false);
+          run().withSuccessHandler(rr=>step(k+1, rr.data||dd)).withFailureHandler(admFail)
+            .adminSetAssign(ADM.token, {dates:byName[names[k]], names:[names[k]], shift:g.shift, event:name, onlyEvent:"", overwrite:false}); };
+        return step(0, data);
+      }
+      putPeople(i+1, r.data||data, false);
+    }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates:days, names:g.names, shift:g.shift, event:name, onlyEvent:"", overwrite:!!overwrite});
+  };
+  busy(true);
+  run().withSuccessHandler(r=>putPeople(0, r.data, false)).withFailureHandler(admFail).adminAddEvent(ADM.token, f);
+});
+$("e-form").elements.start.addEventListener("change", e=>{ const end=$("e-form").elements.end; if(!end.value || end.value<e.target.value) end.value=e.target.value; });
+$("e-list").addEventListener("change", e=>{ const c=e.target.closest("input[data-d]"); if(!c) return;
+  const box=c.closest(".nedit"), h=box.querySelector('[data-h="'+c.dataset.d+'"]'); h.disabled=!c.checked; if(c.checked) h.focus(); });
+$("e-list").addEventListener("click", e=>{
+  const boxOf = name => [...$("e-list").querySelectorAll("[data-nbox]")].find(x=>x.dataset.nbox===name);
+  const ae = e.target.closest("[data-aedit]");
+  if(ae){
+    const name = ae.dataset.aedit, box = boxOf(name); if(!box) return;
+    if(!box.hidden && box.dataset.mode==="assign"){ box.hidden = true; ADM.openBox = null; return; }
+    ADM.openBox = name; renderAssignBox(box, name); return;
+  }
+  const arm = e.target.closest("[data-arm]");
+  if(arm){
+    const [d, n, s] = JSON.parse(arm.dataset.arm), name = arm.closest(".nedit").dataset.nbox;
+    if(!confirm(md(d)+" "+(s?"야간":"주간")+" "+n+" 님을 「"+name+"」에서 뺄까요?")) return;
+    assignOne(name, [d], n, s, true, false); return;
+  }
+  const an = e.target.closest("[data-anight]");
+  if(an){ (ADM.nightOpen = ADM.nightOpen || new Set()).add(an.dataset.anight); renderAssignBox(an.closest(".nedit"), an.closest(".nedit").dataset.nbox); return; }
+  if(e.target.closest("[data-aall]")){ addFromInput(e.target.closest(".nedit").querySelector("#ad-all-n")); return; }
+  if(e.target.closest("[data-eedit],[data-needit],[data-nedit]")) ADM.openBox = null;
+  const ee = e.target.closest("[data-eedit]");
+  if(ee){
+    const name = ee.dataset.eedit, box = boxOf(name), ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
+    if(!box.hidden && box.dataset.mode==="edit"){ box.hidden = true; return; }
+    const v = k => esc(ev[k]==null?"":ev[k]);
+    box.dataset.mode = "edit";
+    box.innerHTML = '<div class="form">'+
+      '<label class="frow"><span>행사명</span><input data-f="name" value="'+v("name")+'"></label>'+
+      '<div class="fgrid"><label class="frow"><span>종류</span><select data-f="type">'+["전시","외부"].map(t=>'<option'+(ev.type===t?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
+      '<label class="frow"><span>시작일</span><input type="date" data-f="start" value="'+v("start")+'"></label>'+
+      '<label class="frow"><span>종료일</span><input type="date" data-f="end" value="'+v("end")+'"></label></div>'+
+      '<div class="fgrid"><label class="frow"><span>장소</span><input data-f="place" value="'+v("place")+'"></label>'+
+      '<label class="frow"><span>담당자</span><input data-f="manager" value="'+v("manager")+'"></label>'+
+      '<label class="frow"><span>연락처</span><input data-f="contact" inputmode="tel" value="'+v("contact")+'"></label></div>'+
+      '<div class="fgrid"><label class="frow"><span>필요 인원 · 주간 (하루 기본)</span><input type="number" min="0" data-f="needDay" value="'+v("needDay")+'"></label>'+
+      '<label class="frow"><span>필요 인원 · 야간 (하루 기본)</span><input type="number" min="0" data-f="needNight" value="'+v("needNight")+'"></label></div>'+
+      '<label class="frow"><span>메모</span><textarea data-f="memo">'+v("memo")+'</textarea></label>'+
+      '<div class="actions"><button type="button" class="btn" data-esave>저장</button><span class="count">이름을 바꾸면 배정·야간·필요 인원의 이름도 같이 바뀌어요</span></div></div>';
+    box.hidden = false; return;
+  }
+  const es2 = e.target.closest("[data-esave]");
+  if(es2){
+    const box = es2.closest(".nedit"), old = box.dataset.nbox, f = {};
+    box.querySelectorAll("[data-f]").forEach(x=>f[x.dataset.f]=x.value);
+    if(f.end < f.start) return toast("종료일이 시작일보다 빨라요.", true);
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+f.name+"」 저장했어요."+(r.renamed?" (배정 "+r.renamed+"칸 이름도 바꿈)":"")); })
+      .withFailureHandler(admFail).adminUpdateEvent(ADM.token, old, f);
+    return;
+  }
+  const nd = e.target.closest("[data-needit]");
+  if(nd){
+    const name = nd.dataset.needit, box = boxOf(name), ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
+    if(!box.hidden && box.dataset.mode==="need"){ box.hidden = true; return; }
+    box.dataset.mode = "need";
+    const ov = DATA.needOv||{};
+    box.innerHTML = '<p class="foot" style="margin:0">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
+      '<div class="nights">'+datesBetween(ev.start, ev.end).map(d=>{ const o = ov[d+"|"+name]||[null,null];
+        return '<div class="nrow need"><span>'+md(d)+'</span>'+
+          '<input type="number" min="0" data-nd="'+d+'" placeholder="주간 '+(ev.needDay??"-")+'" value="'+(o[0]??"")+'" aria-label="'+md(d)+' 주간 필요">'+
+          '<input type="number" min="0" data-nn="'+d+'" placeholder="야간 '+(ev.needNight??"-")+'" value="'+(o[1]??"")+'" aria-label="'+md(d)+' 야간 필요"></div>'; }).join("")+'</div>'+
+      '<div class="actions"><button type="button" class="btn" data-ndsave>날짜별 인원 저장</button></div>';
+    box.hidden = false; return;
+  }
+  const nds = e.target.closest("[data-ndsave]");
+  if(nds){
+    const box = nds.closest(".nedit"), name = box.dataset.nbox;
+    const rows = [...box.querySelectorAll("[data-nd]")].map(x=>({date:x.dataset.nd, day:x.value, night: box.querySelector('[data-nn="'+x.dataset.nd+'"]').value}));
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 날짜별 인원을 저장했어요."); })
+      .withFailureHandler(admFail).adminSetEventNeeds(ADM.token, name, rows);
+    return;
+  }
+  const ne = e.target.closest("[data-nedit]");
+  if(ne){
+    const name = ne.dataset.nedit, box = boxOf(name);
+    const ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
+    if(!box.hidden && box.dataset.mode==="night"){ box.hidden = true; return; }
+    box.dataset.mode = "night";
+    box.innerHTML = '<div class="nights">'+nightRowsHTML(ev.start, ev.end, nightsOf(name))+'</div>'+
+      '<div class="actions"><button type="button" class="btn" data-nsave>야간 날짜 저장</button><span class="count">체크한 날만 야간 · 시간 비우면 일당</span></div>';
+    box.hidden = false; return;
+  }
+  const sv = e.target.closest("[data-nsave]");
+  if(sv){
+    const box = sv.closest(".nedit"), name = box.dataset.nbox, nights = readNights(box);
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 야간 "+nights.length+"일 저장했어요."); })
+      .withFailureHandler(admFail).adminSetEventNights(ADM.token, name, nights);
+    return;
+  }
+  const b = e.target.closest("[data-del]"); if(!b) return;
+  const name = b.dataset.del;
+  if(!confirm("「"+name+"」 행사를 지울까요?\n행사 탭에서 이 줄이 삭제돼요.")) return;
+  const go = clear => run().withSuccessHandler(r=>{
+      if(!r.ok && r.assigned){ busy(false);
+        if(confirm("이 행사에 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 모두 지우고 행사를 삭제할까요?")) { busy(true); go(true); }
+        return; }
+      busy(false); admApply(r.data); toast("지웠어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
+    }).withFailureHandler(admFail).adminDeleteEvent(ADM.token, name, clear);
+  busy(true); go(false);
+});
+$("e-month").addEventListener("change", ()=>{ const v=$("e-month").value; if(!/^\d{4}-\d{2}$/.test(v)) return;
+  ADM.evM = new Date(Number(v.slice(0,4)), Number(v.slice(5,7))-1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
+$("e-q").addEventListener("input", ()=>{ ADM.openBox=null; admRenderPanels(); });
+$("e-prev").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()-1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
+$("e-next").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()+1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
+
+
+// ---------- 행사 관리 → 인원 배정 (일별) ----------
+function renderAssignBox(box, name){
+  const ev = DATA.events.find(x=>x.name===name); if(!ev) return;
+  box.dataset.mode = "assign"; box.hidden = false;
+  const byDay = {};
+  DATA.assign.forEach(a=>{ if(a.event===name){ (byDay[a.date]=byDay[a.date]||{주간:[],야간:[]})[a.shift].push(a.name); } });
+  const NHm = DATA.nightHours||{};
+  const open = ADM.nightOpen || (ADM.nightOpen = new Set());
+  const chip = (n,d,s) => '<button type="button" class="ad-chip" data-arm="'+esc(JSON.stringify([d,n,s]))+'" aria-label="'+esc(n)+' 빼기">'+esc(n)+(noCert.has(n)?' <span class="miss">미이수</span>':'')+'<span class="x" aria-hidden="true">×</span></button>';
+  const adder = (d,s) => '<span class="ad-add"><input list="memlist" placeholder="이름 추가" data-aadd="'+esc(JSON.stringify([d,s]))+'" aria-label="'+md(d)+' '+(s?'야간':'주간')+' 이름 추가" enterkeyhint="done"></span>';
+  const days = datesBetween(ev.start, ev.end);
+  box.innerHTML =
+    '<div class="ad-all"><b>여러 날 한 번에</b> <input list="memlist" placeholder="이름" id="ad-all-n">'+
+      '<select id="ad-all-s"><option value="0">주간</option><option value="1">야간</option></select>'+
+      '<span>'+md(days[0])+' ~ '+md(days[days.length-1])+' 전체에</span><button type="button" class="ad-more" data-aall>추가</button></div>'+
+    days.map(d=>{
+      const g = byDay[d]||{주간:[],야간:[]}, key = d+'|'+name, planned = key in NHm, h = NHm[key];
+      const showNight = planned || g.야간.length || open.has(key);
+      const it = {ev, day:g.주간, night:g.야간};
+      return '<div class="ad-day'+(d===todayKey?' today':'')+'"><div class="ad-head">'+md(d)+' '+needLine(d, it)+'</div>'+
+        '<div class="ad-row"><span class="k">주간</span><span class="ad-names">'+g.주간.map(n=>chip(n,d,0)).join("")+adder(d,0)+'</span></div>'+
+        (showNight
+          ? '<div class="ad-row night"><span class="k">야간</span><span class="ad-names">'+g.야간.map(n=>chip(n,d,1)).join("")+adder(d,1)+
+              (planned?'<span class="count" style="margin:0">'+(h?h+'시간제':'일당')+'</span>':'')+'</span></div>'
+          : '<div><button type="button" class="ad-more" data-anight="'+esc(key)+'">+ 야간</button></div>')+
+      '</div>'; }).join("");
+}
+function assignOne(name, dates, person, shift, remove, overwrite){
+  busy(true);
+  run().withSuccessHandler(r=>{
+    busy(false);
+    if(!r.ok && r.conflicts){
+      const list = r.conflicts.slice(0,8).map(c=>"· "+c.date.slice(5)+" → 이미 「"+c.current+"」").join("\n");
+      if(confirm(person+" 님은 이미 다른 행사에 배정돼 있어요.\n"+list+"\n\n「"+name+"」(으)로 바꿀까요?")) assignOne(name, dates, person, shift, false, true);
+      return;
+    }
+    admApply(r.data);
+    toast(remove ? person+" 님을 뺐어요." : person+" 님을 넣었어요"+(dates.length>1?" ("+r.changed+"일)":"")+".");
+  }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates, names:[person], shift, event: remove?"":name, onlyEvent: remove?name:"", overwrite:!!overwrite});
+}
+function addFromInput(inp){
+  const v = inp.value.trim(); if(!v) return;
+  if(!DATA.members.some(m=>m.name===v)){ toast("팀원 명단에 없는 이름이에요: "+v, true); return; }
+  const box = inp.closest(".nedit"), name = box.dataset.nbox;
+  if(inp.id==="ad-all-n"){
+    const ev = DATA.events.find(x=>x.name===name);
+    assignOne(name, datesBetween(ev.start, ev.end), v, Number(box.querySelector("#ad-all-s").value), false, false);
+  } else {
+    const [d, s] = JSON.parse(inp.dataset.aadd);
+    assignOne(name, [d], v, s, false, false);
+  }
+  inp.value = "";
+}
+$("e-list").addEventListener("change", e=>{ const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp && inp.id!=="ad-all-n") addFromInput(inp); });
+// 목록에서 이름을 고르면 바로 추가 (휴대폰은 고를 때 change 대신 input이 먼저 와요)
+$("e-list").addEventListener("input", e=>{ const inp = e.target.closest("[data-aadd]"); if(inp && e.inputType==="insertReplacementText") addFromInput(inp); });
+$("e-list").addEventListener("keydown", e=>{ if(e.key!=="Enter" || e.isComposing) return; const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp){ e.preventDefault(); addFromInput(inp); } });
+
+// ---------- 팀원 관리 ----------
+const wonS = v => v==null ? '<span class="miss">미입력</span>' : (v%10000===0 ? (v/10000)+'만' : Math.round(v).toLocaleString("ko-KR"))+'원';
+// 금액 칸: 숫자만 남기고 천 단위 쉼표
+document.querySelectorAll("input.won").forEach(inp=>inp.addEventListener("input", ()=>{
+  const d = inp.value.replace(/[^0-9]/g,""); inp.value = d ? Number(d).toLocaleString("ko-KR") : ""; }));
+function admRenderMembers(){
+  const q = $("m-q").value.trim();
+  const cnt = {}; DATA.assign.forEach(a=>cnt[a.name]=(cnt[a.name]||0)+1);
+  $("m-cnt").textContent = DATA.members.length+"명";
+  const list = DATA.members.filter(m=>matchName(m.name,q));
+  $("m-list").innerHTML = list.map(m=>{ const c = m.certRaw||"";
+    return '<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+
+      '<span class="ma">배정 '+(cnt[m.name]||0)+'칸 · 전시 '+wonS(m.rateExh)+' / 외부 '+wonS(m.rateOut)+' / 시급 '+wonS(m.rateHour)+'</span>'+
+      '<label><span class="sr">이수증 </span><select data-cert aria-label="'+esc(m.name)+' 이수증">'+
+        [["","이수증 모름"],["있음","이수증 있음"],["없음","이수증 없음"]].map(([v,t])=>'<option value="'+v+'"'+(v===c?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
+      '<button type="button" class="lnk" data-rate>일당</button>'+
+      '<button type="button" class="lnk" data-rename>이름 고치기</button>'+
+      '<button type="button" class="danger" data-mdel>삭제</button></div>'; }).join("")
+    || '<p class="empty">'+(q?'맞는 이름이 없어요.':'팀원이 없어요.')+'</p>';
+}
+$("m-q").addEventListener("input", admRenderMembers);
+$("m-form").addEventListener("submit", ev=>{
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData($("m-form")).entries());
+  busy(true);
+  run().withSuccessHandler(r=>{ busy(false); $("m-form").reset(); admApply(r.data);
+      const mb = r.data.members.find(x=>x.name===f.name.trim())||{};
+      toast(f.name+" 님 추가 · 전시 "+(mb.rateExh||0).toLocaleString("ko-KR")+"원 / 외부 "+(mb.rateOut||0).toLocaleString("ko-KR")+"원 / 시급 "+(mb.rateHour||0).toLocaleString("ko-KR")+"원"); $("m-form").elements.name.focus(); })
+    .withFailureHandler(admFail).adminAddMember(ADM.token, f);
+});
+$("m-list").addEventListener("change", e=>{
+  const sel = e.target.closest("[data-cert]"); if(!sel) return;
+  const n = sel.closest(".mrow").dataset.n;
+  busy(true);
+  run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 이수증: "+(sel.value||"모름")); })
+    .withFailureHandler(admFail).adminSetCert(ADM.token, n, sel.value);
+});
+$("m-list").addEventListener("click", e=>{
+  const row = e.target.closest(".mrow"); if(!row) return;
+  const n = row.dataset.n;
+  if(e.target.closest("[data-rate]")){
+    const mb = DATA.members.find(x=>x.name===n)||{};
+    const ex = prompt(n+" 일당(전시) — 숫자만, 비우면 빈칸", mb.rateExh ?? ""); if(ex===null) return;
+    const ou = prompt(n+" 일당(외부) — 숫자만, 비우면 빈칸", mb.rateOut ?? ""); if(ou===null) return;
+    const hr = prompt(n+" 시급(야간 시간제) — 숫자만, 비우면 빈칸", mb.rateHour ?? ""); if(hr===null) return;
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 일당을 저장했어요."); })
+      .withFailureHandler(admFail).adminSetRates(ADM.token, n, ou, ex, hr);
+    return;
+  }
+  if(e.target.closest("[data-rename]")){
+    const nn = prompt("새 이름", n); if(!nn || nn.trim()===n) return;
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); if(person===n) person=nn.trim(); admApply(r.data); toast(n+" → "+nn.trim()); })
+      .withFailureHandler(admFail).adminRenameMember(ADM.token, n, nn.trim());
+  }
+  if(e.target.closest("[data-mdel]")){
+    if(!confirm(n+" 님을 팀원에서 삭제할까요?")) return;
+    const go = clear => run().withSuccessHandler(r=>{
+        if(!r.ok && r.assigned){ busy(false);
+          if(confirm(n+" 님에게 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 지우고 삭제할까요?")){ busy(true); go(true); }
+          return; }
+        busy(false); aSel.delete(n); admApply(r.data); toast(n+" 님을 삭제했어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
+      }).withFailureHandler(admFail).adminDeleteMember(ADM.token, n, clear);
+    busy(true); go(false);
+  }
+});
+
+function admRenderPanels(){
+  if(!ADM.token) return;
+  admRenderMembers();
+  // 행사 목록
+  const y=view.getFullYear(), m=view.getMonth();
+  const mStart = iso(new Date(y,m,1)), mEnd = iso(new Date(y,m+1,0));
+  // 행사 관리: 월별로 보기 (기본은 달력에서 보고 있는 달)
+  if(!ADM.evM) ADM.evM = new Date(y, m, 1);
+  const ey = ADM.evM.getFullYear(), em = ADM.evM.getMonth();
+  const eStart = iso(new Date(ey,em,1)), eEnd = iso(new Date(ey,em+1,0));
+  const cnt = {}; DATA.assign.forEach(a=>cnt[a.event]=(cnt[a.event]||0)+1);
+  const q = $("e-q").value.trim();
+  // 이름 검색이 있으면 모든 달에서 찾고, 없으면 고른 달의 행사만
+  const evs = q ? eventsSorted().filter(e=>matchName(e.name, q))
+                : eventsSorted().filter(e=>e.start<=eEnd && e.end>=eStart);
+  const mm = s => Number(s.slice(5,7))+"/"+Number(s.slice(8,10));
+  $("e-month").value = ey+"-"+pad(em+1);
+  document.querySelector(".mnav").classList.toggle("dim", !!q);
+  $("e-title").textContent = q ? "검색 결과 "+evs.length+"개" : (em+1)+"월 행사 "+evs.length+"개";
+  const keepY = window.scrollY;
+  let lastMon = "";
+  $("e-list").innerHTML = evs.map(e=>{ const c = clsFor(e.type);
+    const monHead = (q && e.start.slice(0,7)!==lastMon) ? '<div class="emon">'+Number(e.start.slice(0,4))+"년 "+Number(e.start.slice(5,7))+'월</div>' : '';
+    lastMon = e.start.slice(0,7);
+    const ovN = Object.keys(DATA.needOv||{}).filter(k=>k.endsWith("|"+e.name)).length;
+    return monHead+'<div class="erow" data-evrow="'+esc(e.name)+'"><i class="sw '+c+'"></i><div class="emain"><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
+      '<span>'+esc(e.type||"종류 없음")+' · '+mm(e.start)+(e.end!==e.start?"–"+mm(e.end):"")+' · 배정 '+(cnt[e.name]||0)+'칸'+(e.place?' · '+esc(e.place):'')+'</span>'+
+      (e.manager||e.contact?'<span>담당 '+esc(e.manager||"")+(e.contact?' '+esc(e.contact):'')+'</span>':'')+
+      (e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+
+      (()=>{ const nn = nightsOf(e.name), ks = Object.keys(nn).sort();
+        return ks.length ? '<span class="nightinfo">야간 '+ks.map(k=>Number(k.slice(5,7))+"/"+Number(k.slice(8,10))+(nn[k]?" "+nn[k]+"h":"")).join(", ")+'</span>' : ''; })()+
+      '<span>필요 인원: 주간 '+(e.needDay??"-")+' · 야간 '+(e.needNight??"-")+(ovN?' (날짜별 '+ovN+'일 따로)':'')+'</span>'+
+      '<div class="actions" style="margin-top:4px">'+
+        '<button type="button" class="lnk" data-aedit="'+esc(e.name)+'"><b>인원 배정</b></button>'+
+        '<button type="button" class="lnk" data-eedit="'+esc(e.name)+'">정보 수정</button>'+
+        '<button type="button" class="lnk" data-needit="'+esc(e.name)+'">날짜별 인원</button>'+
+        '<button type="button" class="lnk" data-nedit="'+esc(e.name)+'">야간 날짜</button></div>'+
+      '<div class="nedit" data-nbox="'+esc(e.name)+'" hidden></div></div>'+
+      '<button type="button" class="danger" data-del="'+esc(e.name)+'">삭제</button></div>'; }).join("")
+    || '<p class="empty">'+(q?'"'+esc(q)+'"(이)가 들어간 행사가 없어요.':(em+1)+'월에는 행사가 없어요.')+'</p>';
+  $("memlist").innerHTML = DATA.members.map(mb=>'<option value="'+esc(mb.name)+'">').join("");
+  // 인원 배정 창이 열려 있었다면 다시 열어 둠 (저장할 때마다 닫히지 않게)
+  if(ADM.openBox){
+    const box = [...$("e-list").querySelectorAll("[data-nbox]")].find(x=>x.dataset.nbox===ADM.openBox);
+    if(box){ renderAssignBox(box, ADM.openBox); window.scrollTo(0, keepY); } else ADM.openBox = null;
+  }
+
+  // 인원 현황 · 급여 (달력에서 보고 있는 달 기준)
+  // 배정 1칸 = 1회 × 일당(전시/외부).  단, 야간시간 탭에 그 날짜·행사의 시간이 있으면 그 야간은 시간 × 각자 시급.
+  $("p-title").textContent = y+"년 "+(m+1)+"월 인원 현황 · 급여";
+  const won = v => v==null ? "-" : Math.round(v).toLocaleString("ko-KR")+"원";
+  const hrs = v => (Math.round(v*10)/10)+"시간";
+  const NH = DATA.nightHours || {};
+  const mem = new Map(DATA.members.map(mb=>[mb.name,mb]));
+  const blank = () => ({exh:0,out:0,etc:0,hr:0,hours:0,night:0,days:new Set()});
+  const st = new Map(DATA.members.map(mb=>[mb.name,blank()]));
+  DATA.assign.forEach(a=>{ if(a.date<mStart||a.date>mEnd) return;
+    if(!st.has(a.name)) st.set(a.name,blank());
+    const s = st.get(a.name), t = String((evMap.get(a.event)||{}).type||"").trim();
+    const h = a.shift==="야간" ? NH[a.date+"|"+a.event] : 0;
+    if(h){ s.hr++; s.hours += h; }
+    else t==="전시" ? s.exh++ : t==="외부" ? s.out++ : s.etc++;
+    if(a.shift==="야간") s.night++;
+    s.days.add(a.date); });
+  const rows = [...st.entries()].map(([n,s])=>{
+    const mb = mem.get(n)||{};
+    const miss = [];
+    if((s.out && mb.rateOut==null) || (s.exh && mb.rateExh==null)) miss.push("일당");
+    if(s.hr && mb.rateHour==null) miss.push("시급");
+    const pay = s.out*(mb.rateOut||0) + s.exh*(mb.rateExh||0) + s.hours*(mb.rateHour||0);
+    return {n,s,mb,pay,miss,total:s.exh+s.out+s.etc+s.hr};
+  }).sort((a,b)=>b.pay-a.pay || b.total-a.total || a.n.localeCompare(b.n));
+  const sum = rows.reduce((t,r)=>({pay:t.pay+r.pay, exh:t.exh+r.s.exh, out:t.out+r.s.out, etc:t.etc+r.s.etc, hr:t.hr+r.s.hr, hours:t.hours+r.s.hours, ppl:t.ppl+(r.total?1:0)}), {pay:0,exh:0,out:0,etc:0,hr:0,hours:0,ppl:0});
+  const noDay = rows.filter(r=>r.miss.includes("일당")).length, noHour = rows.filter(r=>r.miss.includes("시급")).length;
+  $("p-sum").innerHTML =
+    '<div class="kpi"><span>총 급여</span><b>'+won(sum.pay)+'</b></div>'+
+    '<div class="kpi"><span>근무 인원</span><b>'+sum.ppl+'명</b></div>'+
+    '<div class="kpi"><span>전시 / 외부</span><b>'+sum.exh+'회 / '+sum.out+'회</b></div>'+
+    '<div class="kpi"><span>야간 시간제</span><b>'+sum.hr+'회 · '+hrs(sum.hours)+'</b></div>'+
+    (noDay?'<p class="warnline">일당이 비어 있는 사람이 '+noDay+'명 있어요. 팀원 관리 → 일당 또는 팀원 탭 D·E열을 채워 주세요.</p>':'')+
+    (noHour?'<p class="warnline">야간 시간제 근무가 있는데 시급이 비어 있는 사람이 '+noHour+'명 있어요. 팀원 탭 F열(시급)을 채워 주세요.</p>':'')+
+    (sum.etc?'<p class="warnline">종류(전시/외부)가 없는 행사 배정 '+sum.etc+'회는 급여 계산에서 빠졌어요. 행사 탭 B열을 확인해 주세요.</p>':'');
+  $("p-table").innerHTML = '<thead><tr><th>이름</th><th class="r">근무일</th><th class="r">전시</th><th class="r">외부</th><th class="r">시간제</th><th class="r hide-m">일당 전시 / 외부 · 시급</th><th class="r">월급</th></tr></thead><tbody>'+
+    rows.map(r=>'<tr class="'+(r.total?'':'idle')+'"><td>'+esc(r.n)+(noCert.has(r.n)?' <span class="miss">미이수</span>':'')+(r.s.night?'<small class="sub">야간 '+r.s.night+'회</small>':'')+'</td>'+
+      '<td class="r">'+r.s.days.size+'일</td><td class="r">'+r.s.exh+'회</td><td class="r">'+r.s.out+'회'+(r.s.etc?'<small class="sub">기타 '+r.s.etc+'</small>':'')+'</td>'+
+      '<td class="r">'+(r.s.hr?hrs(r.s.hours)+'<small class="sub">'+r.s.hr+'회</small>':'-')+'</td>'+
+      '<td class="r hide-m">'+won(r.mb.rateExh)+' / '+won(r.mb.rateOut)+'<small class="sub">시급 '+won(r.mb.rateHour)+'</small></td>'+
+      '<td class="r"><b>'+won(r.pay)+'</b>'+(r.miss.length?'<small class="sub warn">'+r.miss.join("·")+' 미입력</small>':'')+'</td></tr>').join("")+
+    '</tbody><tfoot><tr><td>합계</td><td class="r"></td><td class="r">'+sum.exh+'회</td><td class="r">'+sum.out+'회</td><td class="r">'+(sum.hr?hrs(sum.hours):'-')+'</td><td class="r hide-m"></td><td class="r"><b>'+won(sum.pay)+'</b></td></tr></tfoot>';
+}
+
+
+// 페이지와 함께 온 데이터로 바로 그립니다 (추가로 기다리지 않음)
+setData(<?!= dataJson ?>);
+try { person = localStorage.getItem("teamCalPerson") || ""; } catch(e){}
+fillPeople();
+setPerson(person, true);
+showUpdated();
+// 주소에 ?name=이름 이 있으면 그 사람으로 엽니다
+try { google.script.url.getLocation(loc=>{ const n = loc.parameter && loc.parameter.name; if(n && n!==person){ person=n; fillPeople(); setPerson(n, true); } }); } catch(e){}
+setInterval(()=>{ if(!document.hidden) load(false); }, 5*60*1000);
+// 새로고침해도 관리자 모드 유지 (같은 탭에서 6시간)
+try { const tk = sessionStorage.getItem("teamCalAdm");
+  if(tk) run().withSuccessHandler(d=>{ ADM.token=tk; document.body.classList.add("admin"); admApply(d); admTab("cal"); })
+    .withFailureHandler(()=>{ try{sessionStorage.removeItem("teamCalAdm");}catch(e){} }).adminGetData(tk); } catch(e){}
+</script>
+</body>
+</html>

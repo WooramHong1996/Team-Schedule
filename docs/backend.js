@@ -80,7 +80,9 @@
   }
   async function logout() { await sb.auth.signOut(); }
   async function requestLink(claimedName) {
-    const row = { user_id: S.user.id, display_name: nicknameOf(S.user), claimed_name: String(claimedName || '').trim() || null };
+    const md = S.user.user_metadata || {};
+    const row = { user_id: S.user.id, display_name: nicknameOf(S.user), claimed_name: String(claimedName || '').trim() || null,
+      avatar_url: md.avatar_url || md.picture || null };
     const { error } = await sb.from('link_requests').upsert(row);
     fail(error);
   }
@@ -93,7 +95,7 @@
       fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
       fetchAll('night_plans', 'work_date,event_id,hours'),
       fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
-      fetchAll('link_requests', 'user_id,display_name,claimed_name,requested_at', q => q.order('requested_at'))
+      fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at'))
     ]);
     S.members = members; S.events = events;
     const mName = new Map(members.map(m => [m.id, m.name]));
@@ -113,7 +115,7 @@
       })),
       assign: assigns.map(a => [a.work_date, mName.get(a.member_id), a.shift === '야간' ? 1 : 0, eName.get(a.event_id)]),
       nightHours, needOv,
-      linkRequests: reqs.map(r => ({ userId: r.user_id, nickname: r.display_name || '', claimed: r.claimed_name || '', at: r.requested_at }))
+      linkRequests: reqs.map(r => ({ userId: r.user_id, nickname: r.display_name || '', claimed: r.claimed_name || '', avatar: r.avatar_url || '', at: r.requested_at }))
     };
   }
 

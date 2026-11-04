@@ -321,6 +321,7 @@ body.admin .brand .lo{display:none}
 .mrow .klink{font-size:.75rem;padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
 .mrow .klink.on{border-color:#3b8a3b;color:#2d6f2d}
 #m-reqs .mrow{border-left:3px solid #FEE500;padding-left:8px}
+#m-reqs .kav{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#FEE500;color:#191600;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}
 #m-reqs select{font:inherit;font-size:16px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 body.busy{cursor:progress}
 body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
@@ -1257,8 +1258,9 @@ function admRenderMembers(){
   const reqs = DATA.linkRequests||[];
   const free = DATA.members.filter(m=>!m.linked);
   $("m-reqs").innerHTML = reqs.length ? '<h2>로그인 연결 요청 <small>'+reqs.length+'건</small></h2>'+reqs.map(r=>
-    '<div class="mrow" data-uid="'+esc(r.userId)+'"><span class="mn">'+esc(r.nickname||"(카카오 이름 없음)")+'</span>'+
-    '<span class="ma">본인이 적은 이름: <b>'+esc(r.claimed||"-")+'</b> · '+esc(String(r.at||"").slice(5,10))+'</span>'+
+    '<div class="mrow" data-uid="'+esc(r.userId)+'">'+(r.avatar?'<img class="kav" src="'+esc(r.avatar)+'" alt="" referrerpolicy="no-referrer">':'<span class="kav">'+esc((r.nickname||"?").slice(0,1))+'</span>')+
+    '<span class="mn">'+esc(r.claimed||"(이름 안 적음)")+'</span>'+
+    '<span class="ma">카카오 닉네임 <b>'+esc(r.nickname||"-")+'</b> · 요청 '+(r.at?(new Date(r.at).getMonth()+1)+"/"+new Date(r.at).getDate()+" "+String(new Date(r.at).getHours()).padStart(2,"0")+":"+String(new Date(r.at).getMinutes()).padStart(2,"0"):"")+'</span>'+
     '<select data-lsel aria-label="연결할 팀원"><option value="">팀원 고르기</option>'+free.map(m=>'<option'+(m.name===r.claimed?' selected':'')+'>'+esc(m.name)+'</option>').join("")+'</select>'+
     '<button type="button" class="lnk" data-link><b>연결</b></button><button type="button" class="danger" data-ldis>거절</button></div>').join("")+'<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">' : '';
   const list = DATA.members.filter(m=>matchName(m.name,q));
@@ -1454,7 +1456,7 @@ async function boot(){
     const sent = st.request;
     gate((sent
       ? '<p><b>연결 요청을 보냈어요.</b><br>관리자가 확인하면 바로 일정이 보여요.</p><p style="font-size:.9rem">요청한 이름: '+esc(sent.claimed_name||"-")+'</p><button class="btn" onclick="location.reload()">다시 확인</button>'
-      : '<p>처음 로그인했어요.<br>팀원 명단의 <b>본인 이름</b>을 적어 주세요.<br>관리자가 확인한 뒤 일정이 보여요.</p><input id="g-name" placeholder="예: 홍길동" maxlength="30" value="'+esc(st.nickname||"")+'" autocomplete="name"><button class="btn" id="g-send">연결 요청 보내기</button>')
+      : '<p>처음 로그인했어요.<br>팀원 명단의 <b>본인 이름</b>을 적어 주세요.<br>관리자가 확인한 뒤 일정이 보여요.</p><input id="g-name" placeholder="실명 (예: 홍길동)" maxlength="30" autocomplete="name"><button class="btn" id="g-send">연결 요청 보내기</button>')
       + '<button class="sub2" id="g-out">다른 계정으로 로그인</button>');
     if($("g-send")) $("g-send").onclick = async ()=>{ const v=$("g-name").value.trim(); if(!v) return toast("이름을 적어 주세요.", true);
       try{ await Backend.requestLink(v); boot(); }catch(e){ toast(e.message,true); } };

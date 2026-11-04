@@ -327,9 +327,17 @@
     await sb.from('link_requests').delete().eq('user_id', userId);
     return done();
   }
+  /* 연결 해제: 그 카카오 계정은 다시 '연결 요청'으로 돌아가서 바로 다른 사람과 다시 연결할 수 있음 */
   async function adminUnlinkMember(_t, name) {
-    const { error } = await sb.from('members').update({ user_id: null }).eq('id', await memberId(name));
+    const { data: m, error: me } = await sb.from('members').select('id,user_id').eq('name', name).maybeSingle();
+    fail(me);
+    if (!m) throw new Error('팀원을 찾지 못했어요: ' + name);
+    const { error } = await sb.from('members').update({ user_id: null }).eq('id', m.id);
     fail(error);
+    if (m.user_id) {
+      const { error: re } = await sb.from('link_requests').upsert({ user_id: m.user_id, display_name: '(연결 해제됨: ' + name + ')', claimed_name: name });
+      fail(re);
+    }
     return done();
   }
   async function adminDismissRequest(_t, userId) {

@@ -89,14 +89,16 @@
 
   /* ---------------- 데이터 읽기 ---------------- */
   async function buildAdmin() {
-    const [members, events, assigns, nights, needs, reqs] = await Promise.all([
+    const [members, events, assigns, nights, needs, reqs, admins] = await Promise.all([
       fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,sort_order', q => q.order('sort_order').order('id')),
       fetchAll('events', '*', q => q.order('start_date').order('id')),
       fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
       fetchAll('night_plans', 'work_date,event_id,hours'),
       fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
-      fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at'))
+      fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at')),
+      fetchAll('admins', 'user_id')
     ]);
+    const adminSet = new Set(admins.map(a => a.user_id));
     S.members = members; S.events = events;
     const mName = new Map(members.map(m => [m.id, m.name]));
     const eName = new Map(events.map(e => [e.id, e.name]));
@@ -107,7 +109,8 @@
       updated: stamp(), role: 'admin', me: S.me ? S.me.name : '',
       members: members.filter(m => m.active).map(m => ({
         name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '', note: m.note || '',
-        rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour, linked: !!m.user_id
+        rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour, linked: !!m.user_id,
+        isAdmin: !!(m.user_id && adminSet.has(m.user_id)), isMe: !!(S.user && m.user_id === S.user.id)
       })),
       events: events.map(e => ({
         name: e.name, type: e.type || '', start: e.start_date, end: e.end_date, place: e.place || '',
@@ -346,11 +349,21 @@
     return done();
   }
 
+  /* 간부(관리자) 지정·해제 — 카카오 연결된 팀원만 */
+  async function adminSetAdmin(_t, name, on) {
+    const { data: m, error: me } = await sb.from('members').select('user_id').eq('name', name).maybeSingle();
+    fail(me);
+    if (!m || !m.user_id) throw new Error(name + ' 님은 아직 카카오 연결이 안 돼 있어요. 먼저 연결해 주세요.');
+    if (on) { const { error } = await sb.from('admins').upsert({ user_id: m.user_id }); fail(error); }
+    else { const { error } = await sb.from('admins').delete().eq('user_id', m.user_id); fail(error); }
+    return done();
+  }
+
   const API = {
     getData, refreshData: getData, adminGetData: () => buildAdmin(), adminLogout: logout,
     adminSetAssign, adminAddEvent, adminUpdateEvent, adminDeleteEvent, adminSetEventNeeds, adminSetEventNights, adminSetNightHours,
     adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember,
-    adminLinkMember, adminUnlinkMember, adminDismissRequest
+    adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin
   };
 
   /* 예전 화면 코드가 쓰던 google.script.run 흉내 */

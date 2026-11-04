@@ -320,6 +320,7 @@ body.member .who .combo{display:none}
 body.admin .brand .lo{display:none}
 .mrow .klink{font-size:.75rem;padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
 .mrow .klink.on{border-color:#3b8a3b;color:#2d6f2d}
+.mrow .klink.adm{border-color:#1f3864;background:#1f3864;color:#fff}
 #m-reqs .mrow{border-left:3px solid #FEE500;padding-left:8px}
 #m-reqs .kav{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#FEE500;color:#191600;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}
 #m-reqs select{font:inherit;font-size:16px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
@@ -452,7 +453,7 @@ body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
       <input type="text" id="m-q" class="count" placeholder="이름·초성 검색" autocomplete="off"
         style="font:inherit;font-size:16px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);padding:0 10px;max-width:12em"></div>
     <div id="m-list"></div>
-    <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 삭제하면 그 사람의 배정도 함께 지워져요. 이름을 고쳐도 배정은 그대로 유지돼요. 팀원이 카카오로 처음 로그인하면 위에 "연결 요청"이 뜨고, 명단의 누구인지 골라 연결하면 그때부터 본인 일정이 보여요.</p>
+    <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 삭제하면 그 사람의 배정도 함께 지워져요. 이름을 고쳐도 배정은 그대로 유지돼요. 팀원이 카카오로 처음 로그인하면 위에 "연결 요청"이 뜨고, 명단의 누구인지 골라 연결하면 그때부터 본인 일정이 보여요. 카카오가 연결된 사람은 "간부 지정"을 누르면 관리자 화면을 쓸 수 있어요(관리자는 최소 1명 남아야 해요).</p>
   </section>
 
   <div class="who calview">
@@ -1267,7 +1268,8 @@ function admRenderMembers(){
   $("m-list").innerHTML = list.map(m=>{ const c = m.certRaw||"";
     return '<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+
       '<span class="ma">배정 '+(cnt[m.name]||0)+'칸 · 전시 '+wonS(m.rateExh)+' / 외부 '+wonS(m.rateOut)+' / 시급 '+wonS(m.rateHour)+'</span>'+
-      (m.linked ? '<button type="button" class="lnk klink on" data-unlink title="카카오 연결 해제">카카오 연결됨 ×</button>' : '<span class="klink">카카오 미연결</span>')+
+      (m.linked ? '<button type="button" class="lnk klink on" data-unlink title="카카오 연결 해제">카카오 연결됨 ×</button>'+
+        '<button type="button" class="lnk klink'+(m.isAdmin?' adm':'')+'" data-admin="'+(m.isAdmin?0:1)+'">'+(m.isAdmin?'간부(관리자) ✓':'간부 지정')+'</button>' : '<span class="klink">카카오 미연결</span>')+
       '<label><span class="sr">이수증 </span><select data-cert aria-label="'+esc(m.name)+' 이수증">'+
         [["","이수증 모름"],["있음","이수증 있음"],["없음","이수증 없음"]].map(([v,t])=>'<option value="'+v+'"'+(v===c?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
       '<button type="button" class="lnk" data-rate>일당</button>'+
@@ -1303,6 +1305,16 @@ $("m-list").addEventListener("click", e=>{
     busy(true);
     run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 일당을 저장했어요."); })
       .withFailureHandler(admFail).adminSetRates(ADM.token, n, ou, ex, hr);
+    return;
+  }
+  const ad = e.target.closest("[data-admin]");
+  if(ad){
+    const on = ad.dataset.admin==="1", mb = DATA.members.find(x=>x.name===n)||{};
+    if(on && !confirm(n+" 님을 간부(관리자)로 지정할까요?\n모든 일정·급여·팀원 정보를 보고 고칠 수 있게 돼요.")) return;
+    if(!on && !confirm(n+" 님의 간부(관리자) 권한을 해제할까요?"+(mb.isMe?"\n본인 권한이라 해제하면 바로 관리자 화면이 닫혀요.":""))) return;
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); if(!on && mb.isMe) return location.reload(); admApply(r.data); toast(n+(on?" 님을 간부로 지정했어요.":" 님 간부 권한을 해제했어요.")); })
+      .withFailureHandler(admFail).adminSetAdmin(ADM.token, n, on);
     return;
   }
   if(e.target.closest("[data-unlink]")){

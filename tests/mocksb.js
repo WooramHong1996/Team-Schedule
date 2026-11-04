@@ -14,6 +14,7 @@
     if(table==='assignments'){ const me=myMember(); return me && row.member_id===me.id; }
     if(table==='link_requests') return row.user_id===M.user.id;
     if(table==='admins') return false;
+    if(table==='payroll_closings'||table==='payroll_lines') return false;
     return false;
   }
   function canWrite(table,row){ if(isAdmin()) return true; return table==='link_requests' && M.user && row.user_id===M.user.id; }
@@ -21,6 +22,9 @@
     if(table==='members'){ T.assignments = T.assignments.filter(a=>!ids.includes(a.member_id)); }
     if(table==='events'){ ['assignments','night_plans','need_overrides'].forEach(t=>T[t]=T[t].filter(a=>!ids.includes(a.event_id))); }
   }
+  function closedMonth(d){ return d && (T.payroll_closings||[]).some(c=>c.month===d.slice(0,7)+'-01'); }
+  function lockCheck(table, rows){ if(table!=='assignments'&&table!=='night_plans') return null;
+    const bad = rows.find(r=>closedMonth(r.work_date)); return bad ? {code:'P0001', message: Number(bad.work_date.slice(5,7))+'월은 급여 마감된 달이라 바꿀 수 없어요.'} : null; }
   function Q(table){
     const st = { op:'select', filters:[], order:[], range:null, single:null, count:null, head:false, payload:null, onConflict:null, ret:false };
     const q = {
@@ -54,6 +58,7 @@
       }
       if(st.op==='insert'||st.op==='upsert'){
         const made=[];
+        { const lk = lockCheck(table, st.payload); if(lk) return { data:null, error:lk }; }
         for(const p of st.payload){
           if(!canWrite(table,p)) return err('42501','new row violates row-level security policy');
           const row = {...p}; if(!('id' in row) && table!=='link_requests' && table!=='admins' && table!=='night_plans' && table!=='need_overrides') row.id=++seq;
@@ -70,6 +75,7 @@
       if(st.op==='update'){
         const tgt = rows.filter(r=>match(r));
         if(!isAdmin()) return err('42501','permission denied');
+        { const lk = lockCheck(table, tgt.concat(tgt.map(r=>({...r,...st.payload})))); if(lk) return { data:null, error:lk }; }
         for(const r of tgt){ const nr={...r,...st.payload}; for(const c of (uniq[table]||[])){ if(rows.some(o=>o!==r && keyOf(o,c)===keyOf(nr,c))) return err('23505','duplicate'); } }
         tgt.forEach(r=>Object.assign(r,st.payload));
         return { data:null, error:null };
@@ -77,6 +83,8 @@
       if(st.op==='delete'){
         if(!isAdmin()) return err('42501','permission denied');
         const tgt = rows.filter(r=>match(r)); const ids = tgt.map(r=>r.id);
+        { const lk = lockCheck(table, tgt); if(lk) return { data:null, error:lk }; }
+        if(table==='payroll_closings'){ const ms=tgt.map(r=>r.month); T.payroll_lines=T.payroll_lines.filter(l=>!ms.includes(l.month)); }
         const td=new Date(), today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
         if(table==='members' && T.assignments.some(x=>ids.includes(x.member_id) && x.work_date<today)) return err('P0001','지난 근무 기록이 있는 팀원은 삭제할 수 없어요.');
         if(table==='events' && T.assignments.some(x=>ids.includes(x.event_id) && x.work_date<today)) return err('P0001','지난 근무 기록이 있는 행사는 삭제할 수 없어요.');
@@ -88,7 +96,19 @@
   }
   window.supabase = { createClient(){ return {
     from: Q,
-    rpc(name, args){ return Promise.resolve().then(()=>{
+    rpc(name, args){ if(name==='close_month') return Promise.resolve().then(()=>{
+        if(!isAdmin()) return { data:null, error:{code:'42501',message:'관리자만'} };
+        const m0=args.p_month.slice(0,7)+'-01'; if(T.payroll_closings.some(c=>c.month===m0)) return { data:null, error:{code:'P0001',message:'이미 마감된 달이에요.'} };
+        const byM={};
+        T.assignments.filter(a=>a.work_date.slice(0,7)===m0.slice(0,7)).forEach(a=>{ const e=T.events.find(x=>x.id===a.event_id); const np=T.night_plans.find(n=>n.event_id===a.event_id&&n.work_date===a.work_date);
+          const hourly = a.shift==='야간' && np && np.hours>0; const o=byM[a.member_id]=byM[a.member_id]||{days:new Set(),exh:0,out:0,etc:0,hr:0,hours:0,night:0};
+          o.days.add(a.work_date); if(hourly){o.hr++;o.hours+=np.hours;} else if(e.type==='전시')o.exh++; else if(e.type==='외부')o.out++; else o.etc++; if(a.shift==='야간')o.night++; });
+        let total=0;
+        Object.entries(byM).forEach(([id,o])=>{ const m=T.members.find(x=>x.id==id); const pay=o.exh*(m.rate_exh||0)+o.out*(m.rate_out||0)+Math.round(o.hours*(m.rate_hour||0)); total+=pay;
+          T.payroll_lines.push({month:m0,member_id:m.id,member_name:m.name,days:o.days.size,exh_count:o.exh,out_count:o.out,etc_count:o.etc,hour_count:o.hr,hours:o.hours,night_count:o.night,rate_exh:m.rate_exh,rate_out:m.rate_out,rate_hour:m.rate_hour,pay}); });
+        T.payroll_closings.push({month:m0,closed_at:'2026-11-04T05:00:00Z',closed_by_name:'홍우람',total});
+        return { data: total, error:null }; });
+      return Promise.resolve().then(()=>{
       const me = myMember(); if(!me) return { data:[], error:null };
       const mine = new Set(T.assignments.filter(a=>a.member_id===me.id && a.work_date>=args.p_from && a.work_date<=args.p_to).map(a=>a.work_date+'|'+a.event_id));
       const data = T.assignments.filter(a=>mine.has(a.work_date+'|'+a.event_id)).map(a=>{ const e=T.events.find(x=>x.id===a.event_id), m=T.members.find(x=>x.id===a.member_id);

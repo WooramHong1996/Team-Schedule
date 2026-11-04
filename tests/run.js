@@ -21,6 +21,7 @@ function seed(user) {
     { id: 105, work_date: '2026-10-01', member_id: 2, shift: '주간', event_id: 12 },
   ];
   return { user, tables: { members, events, assignments, night_plans: [], need_overrides: [], admins: [{ user_id: 'U-admin' }],
+    payroll_closings: [], payroll_lines: [],
     link_requests: [{ user_id: 'U-new', display_name: '한솔', claimed_name: '오한솔', requested_at: '2026-11-04T01:00:00Z' }] } };
 }
 
@@ -33,6 +34,7 @@ async function page(browser, user) {
   p.on('dialog', d => d.accept());
   await p.route('**/*', async route => {
     const u = route.request().url();
+    if (u.includes('xlsx.full.min.js')) return route.fulfill({ contentType: 'application/javascript', body: 'window.XLSX={utils:{book_new:()=>({s:[]}),aoa_to_sheet:a=>({a}),book_append_sheet:(w,s,n)=>w.s.push([n,s.a])},writeFile:(w,f)=>{window.__xlsx={f,s:w.s};}};' });
     if (u.includes('supabase-js')) return route.fulfill({ contentType: 'application/javascript', body: 'window.__MOCK=' + JSON.stringify(seed(user)) + ';\n' + MOCK });
     if (u.startsWith('http://app/')) {
       const f = path.join(DOCS, u.slice('http://app/'.length).split('?')[0] || 'index.html');
@@ -137,6 +139,20 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     // 급여 화면
     await p.evaluate(() => admTab('people')); await p.waitForTimeout(200);
     T('pay table renders', (await p.textContent('#p-table')).includes('합계'));
+    // 월 마감 · 엑셀
+    await p.evaluate(() => { view = new Date(2026, 10, 1); admTab('people'); }); await p.waitForTimeout(150);
+    const before = await p.evaluate(() => PAY.rows.reduce((a,r)=>a+r.pay,0));
+    await p.click('#p-close [data-close]'); await p.waitForTimeout(500);
+    T('month closed', await p.evaluate(() => !!DATA.closings['2026-11'] && document.querySelector('#p-close').classList.contains('closed')));
+    T('closed total equals live total', await p.evaluate(b => DATA.closings['2026-11'].total === b, before));
+    await p.evaluate(() => api.adminSetRates('홍우람', '1', '1', '1').then(r=>admApply(r.data), admFail)); await p.waitForTimeout(400);
+    T('closed month keeps old pay after rate change', await p.evaluate(b => PAY.rows.reduce((a,r)=>a+r.pay,0) === b, before));
+    await p.evaluate(() => assignOne('구리 총회', ['2026-11-04'], '박진원', 1, false, false)); await p.waitForTimeout(400);
+    T('closed month locks assignments', (await p.textContent('#toast')).includes('마감된 달'));
+    await p.click('#p-close [data-xlsx]'); await p.waitForTimeout(400);
+    T('xlsx built', await p.evaluate(() => window.__xlsx && window.__xlsx.f === '급여_2026-11_마감.xlsx' && window.__xlsx.s.length === 2 && window.__xlsx.s[1][1].length > 1));
+    await p.click('#p-close [data-reopen]'); await p.waitForTimeout(400);
+    T('reopened', await p.evaluate(() => !DATA.closings['2026-11'] && !document.querySelector('#p-close').classList.contains('closed')));
     await p.evaluate(() => admTab('cal'));
     await p.screenshot({ path: path.join(__dirname, 'admin.png') });
     T('no unexpected errors (admin)', errs.filter(e=>!/같은 이름|퇴사자 목록|지울 수 없어요/.test(e)).length === 0); if (errs.length) console.log(errs); }

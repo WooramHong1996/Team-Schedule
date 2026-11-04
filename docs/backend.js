@@ -90,15 +90,22 @@
 
   /* ---------------- 데이터 읽기 ---------------- */
   async function buildAdmin() {
-    const [members, events, assigns, nights, needs, reqs, admins] = await Promise.all([
+    const [members, events, assigns, nights, needs, reqs, admins, closes, lines] = await Promise.all([
       fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
       fetchAll('events', '*', q => q.order('start_date').order('id')),
       fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
       fetchAll('night_plans', 'work_date,event_id,hours'),
       fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
       fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at')),
-      fetchAll('admins', 'user_id')
+      fetchAll('admins', 'user_id'),
+      fetchAll('payroll_closings', 'month,closed_at,closed_by_name,total'),
+      fetchAll('payroll_lines', '*')
     ]);
+    const closings = {};
+    closes.forEach(c => { closings[c.month.slice(0, 7)] = { closedAt: c.closed_at, by: c.closed_by_name || '', total: Number(c.total), lines: [] }; });
+    lines.forEach(l => { const c = closings[l.month.slice(0, 7)]; if (c) c.lines.push({
+      name: l.member_name, days: l.days, exh: l.exh_count, out: l.out_count, etc: l.etc_count, hr: l.hour_count, hours: Number(l.hours),
+      night: l.night_count, rateExh: l.rate_exh, rateOut: l.rate_out, rateHour: l.rate_hour, pay: Number(l.pay) }); });
     const adminSet = new Set(admins.map(a => a.user_id));
     S.members = members; S.events = events;
     const mName = new Map(members.map(m => [m.id, m.name]));
@@ -122,7 +129,7 @@
         manager: e.manager || '', contact: e.contact || '', memo: e.memo || '', needDay: e.need_day, needNight: e.need_night
       })),
       assign: assigns.map(a => [a.work_date, mName.get(a.member_id), a.shift === '야간' ? 1 : 0, eName.get(a.event_id)]),
-      nightHours, needOv,
+      nightHours, needOv, closings,
       linkRequests: reqs.map(r => ({ userId: r.user_id, nickname: r.display_name || '', claimed: r.claimed_name || '', avatar: r.avatar_url || '', at: r.requested_at }))
     };
   }
@@ -392,11 +399,23 @@
     return done();
   }
 
+  /* 급여 월 마감: ym = 'YYYY-MM' */
+  async function closeMonth(ym) {
+    const { data, error } = await sb.rpc('close_month', { p_month: ym + '-01' });
+    fail(error);
+    return done({ total: Number(data) });
+  }
+  async function reopenMonth(ym) {
+    const { error } = await sb.from('payroll_closings').delete().eq('month', ym + '-01');
+    fail(error);
+    return done();
+  }
+
   const API = {
     getData,
     adminSetAssign, adminAddEvent, adminUpdateEvent, adminDeleteEvent, adminSetEventNeeds, adminSetEventNights, adminSetNightHours,
     adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember, adminRetireMember, adminRestoreMember,
-    adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin
+    adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin, closeMonth, reopenMonth
   };
 
   window.api = API;

@@ -44,6 +44,7 @@
 
 
   <section class="panel apanel" id="adm-events">
+    <div id="e-listview">
     <details class="adddet" id="e-adddet"><summary>＋ 새 행사 추가</summary>
     <form class="form" id="e-form" autocomplete="off">
       <label class="frow"><span>행사명 *</span><input name="name" required maxlength="80" placeholder="예: 서울 코엑스 ○○전"></label>
@@ -78,8 +79,22 @@
       <div class="mnav"><button type="button" id="e-prev" aria-label="이전 달">‹</button>
         <input type="month" id="e-month" aria-label="달 고르기"><button type="button" id="e-next" aria-label="다음 달">›</button></div></div>
     <div class="esearch"><input type="search" id="e-q" placeholder="행사 이름 검색 (모든 달에서 찾기)" autocomplete="off"></div>
-    <datalist id="memlist"></datalist>
     <div id="e-list"></div>
+    </div>
+    <div id="e-detail" hidden>
+      <div class="edtop">
+        <button type="button" class="ednav-btn" id="ed-back">‹ 목록</button>
+        <span class="ednav"><button type="button" class="ednav-btn" id="ed-prev">‹ 이전</button><button type="button" class="ednav-btn" id="ed-next">다음 ›</button></span>
+      </div>
+      <div class="edhead" id="ed-head"></div>
+      <div class="edtabs" role="tablist" aria-label="행사 화면">
+        <button type="button" role="tab" data-etab="assign">인원 배정</button>
+        <button type="button" role="tab" data-etab="info">행사 정보</button>
+        <button type="button" role="tab" data-etab="extra">야간·필요 인원</button>
+      </div>
+      <div class="nedit edbody" id="ed-body" data-nbox=""></div>
+    </div>
+    <datalist id="memlist"></datalist>
   </section>
 
   <section class="panel apanel" id="adm-people">

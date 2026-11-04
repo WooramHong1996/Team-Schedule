@@ -8,6 +8,8 @@ function admFail(err){ busy(false); toast(err && err.message ? err.message : Str
 function admExit(){ if(confirm("로그아웃할까요?")) doLogout(); }
 function admApply(data){ setData(data); fillPeople(); showUpdated(); render(); }
 function admTab(t){
+  // 행사 화면을 보다가 '행사 관리' 탭을 다시 누르면 목록으로
+  if(t==="events" && ADM.tab==="events" && ADM.evOpen && typeof closeEvent==="function"){ closeEvent(); return; }
   ADM.tab = t;
   document.querySelectorAll(".atabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.t===t ? "true":"false"));
   document.body.dataset.tab = t;
@@ -41,19 +43,13 @@ function dayShort(date, items){
   return items.some(it=>{ const [nd,nn] = needFor(date, it.ev.name); return (nd!=null && it.day.length<nd) || (nn!=null && it.night.length<nn); });
 }
 function jumpToEvent(name, date){
-  const ev = DATA.events.find(x=>x.name===name);
-  let base = date ? new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1) : null;
-  if(!base && ev){
-    const vs = iso(new Date(view.getFullYear(), view.getMonth(), 1)), ve = iso(new Date(view.getFullYear(), view.getMonth()+1, 0));
-    base = (ev.start<=ve && ev.end>=vs) ? new Date(view.getFullYear(), view.getMonth(), 1) : new Date(Number(ev.start.slice(0,4)), Number(ev.start.slice(5,7))-1, 1);
-  }
-  if(base) ADM.evM = base;
-  ADM.openBox = null;
+  const ev = DATA.events.find(x=>x.name===name); if(!ev) return;
+  // 목록의 달도 그 행사(또는 누른 날짜)의 달로 맞춰 둠 — "‹ 목록"을 누르면 그 달 목록이 보이게
+  const base = date || (ev.start<=iso(new Date(view.getFullYear(), view.getMonth()+1, 0)) && ev.end>=iso(new Date(view.getFullYear(), view.getMonth(), 1)) ? iso(view) : ev.start);
+  ADM.evM = new Date(Number(base.slice(0,4)), Number(base.slice(5,7))-1, 1);
   $("e-q").value = "";
   admTab("events");
-  admRenderPanels();
-  const row = [...document.querySelectorAll("[data-evrow]")].find(x=>x.dataset.evrow===name);
-  if(row){ row.scrollIntoView({behavior:"smooth", block:"center"}); row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash"); }
+  openEvent(name, {tab:"assign", date: date && date>=ev.start && date<=ev.end ? date : null});
 }
 function admDayExtra(it){
   const e = it.ev;

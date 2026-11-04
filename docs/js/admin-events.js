@@ -50,10 +50,8 @@ $("e-form").addEventListener("submit", ev=>{
   const finish = (data, msg) => {
     busy(false); $("e-form").reset(); ePeople.length = 0; drawPTags(); refreshAddNights(); $("e-adddet").open = false;
     admApply(data); toast(msg);
-    // 새 행사로 이동해서 인원 배정 창을 열어 둠 (날짜마다 다르면 여기서 바로 고치면 돼요)
-    jumpToEvent(name); ADM.openBox = name; admRenderPanels();
-    const row = [...document.querySelectorAll("[data-evrow]")].find(x=>x.dataset.evrow===name);
-    if(row) row.scrollIntoView({block:"start"});
+    // 새 행사 화면(인원 배정)으로 이동 (날짜마다 다르면 여기서 바로 고치면 돼요)
+    openEvent(name, {tab:"assign"});
   };
   // 사람을 주간/야간별로 묶어 차례로 넣음
   const groups = [0,1].map(sh=>({shift:sh, names: people.filter(p=>p.shift===sh).map(p=>p.name)})).filter(g=>g.names.length);
@@ -80,31 +78,66 @@ $("e-form").addEventListener("submit", ev=>{
   api.adminAddEvent(f).then(r=>putPeople(0, r.data, false), admFail);
 });
 $("e-form").elements.start.addEventListener("change", e=>{ const end=$("e-form").elements.end; if(!end.value || end.value<e.target.value) end.value=e.target.value; });
-$("e-list").addEventListener("change", e=>{ const c=e.target.closest("input[data-d]"); if(!c) return;
-  const box=c.closest(".nedit"), h=box.querySelector('[data-h="'+c.dataset.d+'"]'); h.disabled=!c.checked; if(c.checked) h.focus(); });
-$("e-list").addEventListener("click", e=>{
-  const boxOf = name => [...$("e-list").querySelectorAll("[data-nbox]")].find(x=>x.dataset.nbox===name);
-  const ae = e.target.closest("[data-aedit]");
-  if(ae){
-    const name = ae.dataset.aedit, box = boxOf(name); if(!box) return;
-    if(!box.hidden && box.dataset.mode==="assign"){ box.hidden = true; ADM.openBox = null; return; }
-    ADM.openBox = name; renderAssignBox(box, name); return;
-  }
-  const arm = e.target.closest("[data-arm]");
-  if(arm){
-    const [d, n, s] = JSON.parse(arm.dataset.arm), name = arm.closest(".nedit").dataset.nbox;
-    if(!confirm(md(d)+" "+(s?"야간":"주간")+" "+n+" 님을 「"+name+"」에서 뺄까요?")) return;
-    assignOne(name, [d], n, s, true, false); return;
-  }
-  const an = e.target.closest("[data-anight]");
-  if(an){ (ADM.nightOpen = ADM.nightOpen || new Set()).add(an.dataset.anight); renderAssignBox(an.closest(".nedit"), an.closest(".nedit").dataset.nbox); return; }
-  if(e.target.closest("[data-aall]")){ addFromInput(e.target.closest(".nedit").querySelector("#ad-all-n")); return; }
-  if(e.target.closest("[data-eedit],[data-needit],[data-nedit]")) ADM.openBox = null;
-  const ee = e.target.closest("[data-eedit]");
-  if(ee){
-    const name = ee.dataset.eedit, box = boxOf(name), ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
-    if(!box.hidden && box.dataset.mode==="edit"){ box.hidden = true; return; }
-    const v = k => esc(ev[k]==null?"":ev[k]);
+// ---------- 행사 하나 화면 ----------
+// 목록에서 행사를 누르면 그 행사만 보이는 화면으로. 휴대폰 뒤로 가기 = 목록으로.
+function evOrder(){ return (ADM.evOrder && ADM.evOrder.length) ? ADM.evOrder : eventsSorted().map(e=>e.name); }
+function openEvent(name, opt){
+  opt = opt || {};
+  if(!DATA.events.some(x=>x.name===name)) return;
+  ADM.evOpen = name; ADM.evTab = opt.tab || "assign";
+  const st = {ev:name};
+  if(opt.push === false) {}
+  else if(history.state && history.state.ev) history.replaceState(st, "");
+  else history.pushState(st, "");
+  renderEventDetail();
+  window.scrollTo(0, 0);
+  if(opt.date) setTimeout(()=>{ const d = $("ed-body").querySelector('[data-day="'+opt.date+'"]');
+    if(d){ d.scrollIntoView({block:"center"}); d.classList.remove("flash"); void d.offsetWidth; d.classList.add("flash"); } }, 30);
+}
+function showEventList(){
+  ADM.evOpen = null;
+  $("e-detail").hidden = true; $("e-listview").hidden = false;
+  renderEventList();
+  if(ADM.lastOpen){ const row = [...document.querySelectorAll("[data-open]")].find(x=>x.dataset.open===ADM.lastOpen);
+    if(row){ row.scrollIntoView({block:"center"}); row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash"); } }
+}
+function closeEvent(){ if(history.state && history.state.ev) history.back(); else showEventList(); }
+window.addEventListener("popstate", e=>{
+  if(!ADM.admin) return;
+  const name = e.state && e.state.ev;
+  if(name && DATA.events.some(x=>x.name===name)){ admTab("events"); openEvent(name, {push:false, tab:ADM.evTab}); }
+  else if(ADM.evOpen) showEventList();
+});
+function shortDays(name){
+  const ev = DATA.events.find(x=>x.name===name); if(!ev) return 0;
+  const by = {}; DATA.assign.forEach(a=>{ if(a.event===name){ const g = by[a.date] = by[a.date]||[0,0]; g[a.shift==="야간"?1:0]++; } });
+  return datesBetween(ev.start, ev.end).filter(d=>{ const [nd,nn] = needFor(d, name), g = by[d]||[0,0];
+    return (nd!=null && g[0]<nd) || (nn!=null && g[1]<nn); }).length;
+}
+function renderEventDetail(){
+  const name = ADM.evOpen, ev = DATA.events.find(x=>x.name===name);
+  if(!ev){ showEventList(); return; }
+  ADM.lastOpen = name;
+  $("e-listview").hidden = true; $("e-detail").hidden = false;
+  const mm = s => Number(s.slice(5,7))+"/"+Number(s.slice(8,10));
+  const cnt = DATA.assign.filter(a=>a.event===name).length, sh = shortDays(name);
+  const nn = Object.keys(nightsOf(name)).length;
+  const closed = datesBetween(ev.start, ev.end).some(d=>(DATA.closings||{})[d.slice(0,7)]);
+  $("ed-head").innerHTML =
+    '<h2><i class="sw '+clsFor(ev.type)+'"></i>'+esc(ev.name)+'</h2>'+
+    '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mm(ev.start)+(ev.end!==ev.start?" – "+mm(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
+    (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a href="tel:'+esc(ev.contact)+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
+    (ev.memo ? '<span class="memo">'+esc(ev.memo)+'</span>' : '')+
+    '<div class="ebadges"><span class="ebadge">배정 '+cnt+'칸</span>'+
+      (sh ? '<span class="ebadge bad">인원 부족 '+sh+'일</span>' : (ev.needDay!=null||ev.needNight!=null ? '<span class="ebadge ok">필요 인원 OK</span>' : '<span class="ebadge">필요 인원 미입력</span>'))+
+      (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+(closed ? '<span class="ebadge">급여 마감된 날 있음</span>' : '')+'</div>';
+  const order = evOrder(), k = order.indexOf(name);
+  $("ed-prev").disabled = k<=0; $("ed-next").disabled = k<0 || k>=order.length-1;
+  document.querySelectorAll("[data-etab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.etab===ADM.evTab ? "true":"false"));
+  const box = $("ed-body"); box.dataset.nbox = name;
+  if(ADM.evTab === "assign") return renderAssignBox(box, name);
+  if(ADM.evTab === "info"){
+    const v = k2 => esc(ev[k2]==null?"":ev[k2]);
     box.dataset.mode = "edit";
     box.innerHTML = '<div class="form">'+
       '<label class="frow"><span>행사명</span><input data-f="name" value="'+v("name")+'"></label>'+
@@ -117,73 +150,81 @@ $("e-list").addEventListener("click", e=>{
       '<div class="fgrid"><label class="frow"><span>필요 인원 · 주간 (하루 기본)</span><input type="number" min="0" data-f="needDay" value="'+v("needDay")+'"></label>'+
       '<label class="frow"><span>필요 인원 · 야간 (하루 기본)</span><input type="number" min="0" data-f="needNight" value="'+v("needNight")+'"></label></div>'+
       '<label class="frow"><span>메모</span><textarea data-f="memo">'+v("memo")+'</textarea></label>'+
-      '<div class="actions"><button type="button" class="btn" data-esave>저장</button><span class="count">이름을 바꾸면 배정·야간·필요 인원의 이름도 같이 바뀌어요</span></div></div>';
-    box.hidden = false; return;
-  }
-  const es2 = e.target.closest("[data-esave]");
-  if(es2){
-    const box = es2.closest(".nedit"), old = box.dataset.nbox, f = {};
-    box.querySelectorAll("[data-f]").forEach(x=>f[x.dataset.f]=x.value);
-    if(f.end < f.start) return toast("종료일이 시작일보다 빨라요.", true);
-    busy(true);
-    api.adminUpdateEvent(old, f).then(r=>{ busy(false); admApply(r.data); toast("「"+f.name+"」 저장했어요."+(r.renamed?" (배정 "+r.renamed+"칸 이름도 바꿈)":"")); }, admFail);
+      '<div class="actions"><button type="button" class="btn" data-esave>저장</button><span class="count">이름을 바꿔도 배정은 그대로 이어져요</span></div></div>'+
+      '<div class="dangerzone"><button type="button" class="danger" data-del="'+esc(name)+'">이 행사 삭제</button><span class="count">지난 근무 기록이 있는 행사는 지울 수 없어요</span></div>';
     return;
   }
-  const nd = e.target.closest("[data-needit]");
-  if(nd){
-    const name = nd.dataset.needit, box = boxOf(name), ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
-    if(!box.hidden && box.dataset.mode==="need"){ box.hidden = true; return; }
-    box.dataset.mode = "need";
-    const ov = DATA.needOv||{};
-    box.innerHTML = '<p class="foot" style="margin:0">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
-      '<div class="nights">'+datesBetween(ev.start, ev.end).map(d=>{ const o = ov[d+"|"+name]||[null,null];
-        return '<div class="nrow need"><span>'+md(d)+'</span>'+
-          '<input type="number" min="0" data-nd="'+d+'" placeholder="주간 '+(ev.needDay??"-")+'" value="'+(o[0]??"")+'" aria-label="'+md(d)+' 주간 필요">'+
-          '<input type="number" min="0" data-nn="'+d+'" placeholder="야간 '+(ev.needNight??"-")+'" value="'+(o[1]??"")+'" aria-label="'+md(d)+' 야간 필요"></div>'; }).join("")+'</div>'+
-      '<div class="actions"><button type="button" class="btn" data-ndsave>날짜별 인원 저장</button></div>';
-    box.hidden = false; return;
+  // 야간 · 필요 인원
+  box.dataset.mode = "extra";
+  const ov = DATA.needOv||{};
+  box.innerHTML =
+    '<h3>야간 날짜</h3><p class="foot" style="margin:0">야간이 있는 날만 체크 · 시간제면 시간 입력 (비우면 일당)</p>'+
+    '<div class="nights">'+nightRowsHTML(ev.start, ev.end, nightsOf(name))+'</div>'+
+    '<div class="actions"><button type="button" class="btn" data-nsave>야간 날짜 저장</button></div>'+
+    '<h3>날짜별 필요 인원</h3><p class="foot" style="margin:0">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
+    '<div class="nights">'+datesBetween(ev.start, ev.end).map(d=>{ const o = ov[d+"|"+name]||[null,null];
+      return '<div class="nrow need"><span>'+md(d)+'</span>'+
+        '<input type="number" min="0" data-nd="'+d+'" placeholder="주간 '+(ev.needDay??"-")+'" value="'+(o[0]??"")+'" aria-label="'+md(d)+' 주간 필요">'+
+        '<input type="number" min="0" data-nn="'+d+'" placeholder="야간 '+(ev.needNight??"-")+'" value="'+(o[1]??"")+'" aria-label="'+md(d)+' 야간 필요"></div>'; }).join("")+'</div>'+
+    '<div class="actions"><button type="button" class="btn" data-ndsave>날짜별 인원 저장</button></div>';
+}
+$("ed-back").addEventListener("click", closeEvent);
+$("ed-prev").addEventListener("click", ()=>{ const o = evOrder(), k = o.indexOf(ADM.evOpen); if(k>0) openEvent(o[k-1], {tab:ADM.evTab}); });
+$("ed-next").addEventListener("click", ()=>{ const o = evOrder(), k = o.indexOf(ADM.evOpen); if(k>=0 && k<o.length-1) openEvent(o[k+1], {tab:ADM.evTab}); });
+document.querySelector(".edtabs").addEventListener("click", e=>{ const b = e.target.closest("[data-etab]"); if(!b) return; ADM.evTab = b.dataset.etab; renderEventDetail(); });
+$("e-list").addEventListener("click", e=>{ const r = e.target.closest("[data-open]"); if(r) openEvent(r.dataset.open); });
+$("e-list").addEventListener("keydown", e=>{ if(e.key!=="Enter") return; const r = e.target.closest("[data-open]"); if(r){ e.preventDefault(); openEvent(r.dataset.open); } });
+
+$("e-detail").addEventListener("change", e=>{ const c=e.target.closest("input[data-d]"); if(!c) return;
+  const box=c.closest(".nedit"), h=box.querySelector('[data-h="'+c.dataset.d+'"]'); h.disabled=!c.checked; if(c.checked) h.focus(); });
+$("e-detail").addEventListener("click", e=>{
+  const name = ADM.evOpen; if(!name) return;
+  const arm = e.target.closest("[data-arm]");
+  if(arm){
+    const [d, n, s] = JSON.parse(arm.dataset.arm);
+    if(!confirm(md(d)+" "+(s?"야간":"주간")+" "+n+" 님을 「"+name+"」에서 뺄까요?")) return;
+    assignOne(name, [d], n, s, true, false); return;
   }
-  const nds = e.target.closest("[data-ndsave]");
-  if(nds){
-    const box = nds.closest(".nedit"), name = box.dataset.nbox;
+  const an = e.target.closest("[data-anight]");
+  if(an){ (ADM.nightOpen = ADM.nightOpen || new Set()).add(an.dataset.anight); renderAssignBox($("ed-body"), name); return; }
+  if(e.target.closest("[data-aall]")){ addFromInput($("ed-body").querySelector("#ad-all-n")); return; }
+  if(e.target.closest("[data-esave]")){
+    const f = {}; $("ed-body").querySelectorAll("[data-f]").forEach(x=>f[x.dataset.f]=x.value);
+    if(f.end < f.start) return toast("종료일이 시작일보다 빨라요.", true);
+    busy(true);
+    api.adminUpdateEvent(name, f).then(r=>{ busy(false);
+      const nn = f.name.trim(); if(nn && nn!==name){ ADM.evOpen = nn; history.replaceState({ev:nn}, ""); }
+      admApply(r.data); toast("「"+f.name+"」 저장했어요."); }, admFail);
+    return;
+  }
+  if(e.target.closest("[data-ndsave]")){
+    const box = $("ed-body");
     const rows = [...box.querySelectorAll("[data-nd]")].map(x=>({date:x.dataset.nd, day:x.value, night: box.querySelector('[data-nn="'+x.dataset.nd+'"]').value}));
     busy(true);
     api.adminSetEventNeeds(name, rows).then(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 날짜별 인원을 저장했어요."); }, admFail);
     return;
   }
-  const ne = e.target.closest("[data-nedit]");
-  if(ne){
-    const name = ne.dataset.nedit, box = boxOf(name);
-    const ev = DATA.events.find(x=>x.name===name); if(!box||!ev) return;
-    if(!box.hidden && box.dataset.mode==="night"){ box.hidden = true; return; }
-    box.dataset.mode = "night";
-    box.innerHTML = '<div class="nights">'+nightRowsHTML(ev.start, ev.end, nightsOf(name))+'</div>'+
-      '<div class="actions"><button type="button" class="btn" data-nsave>야간 날짜 저장</button><span class="count">체크한 날만 야간 · 시간 비우면 일당</span></div>';
-    box.hidden = false; return;
-  }
-  const sv = e.target.closest("[data-nsave]");
-  if(sv){
-    const box = sv.closest(".nedit"), name = box.dataset.nbox, nights = readNights(box);
+  if(e.target.closest("[data-nsave]")){
+    const nights = readNights($("ed-body"));
     busy(true);
     api.adminSetEventNights(name, nights).then(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 야간 "+nights.length+"일 저장했어요."); }, admFail);
     return;
   }
-  const b = e.target.closest("[data-del]"); if(!b) return;
-  const name = b.dataset.del;
+  if(!e.target.closest("[data-del]")) return;
   if(!confirm("「"+name+"」 행사를 지울까요?\n(이미 지난 근무 기록이 있는 행사는 급여 기록 보호를 위해 지울 수 없어요)")) return;
   const go = clear => api.adminDeleteEvent(name, clear).then(r=>{
       if(!r.ok && r.assigned){ busy(false);
         if(confirm("이 행사에 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 모두 지우고 행사를 삭제할까요?")) { busy(true); go(true); }
         return; }
-      busy(false); admApply(r.data); toast("지웠어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
+      busy(false); ADM.lastOpen = null; admApply(r.data); closeEvent(); toast("지웠어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
     }, admFail);
   busy(true); go(false);
 });
 $("e-month").addEventListener("change", ()=>{ const v=$("e-month").value; if(!/^\d{4}-\d{2}$/.test(v)) return;
-  ADM.evM = new Date(Number(v.slice(0,4)), Number(v.slice(5,7))-1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
-$("e-q").addEventListener("input", ()=>{ ADM.openBox=null; admRenderPanels(); });
-$("e-prev").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()-1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
-$("e-next").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()+1, 1); $("e-q").value=""; ADM.openBox=null; admRenderPanels(); });
+  ADM.evM = new Date(Number(v.slice(0,4)), Number(v.slice(5,7))-1, 1); $("e-q").value=""; admRenderPanels(); });
+$("e-q").addEventListener("input", ()=>admRenderPanels());
+$("e-prev").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()-1, 1); $("e-q").value=""; admRenderPanels(); });
+$("e-next").addEventListener("click", ()=>{ const b=ADM.evM||new Date(); ADM.evM=new Date(b.getFullYear(), b.getMonth()+1, 1); $("e-q").value=""; admRenderPanels(); });
 
 
 // ---------- 행사 관리 → 인원 배정 (일별) ----------
@@ -205,7 +246,7 @@ function renderAssignBox(box, name){
       const g = byDay[d]||{주간:[],야간:[]}, key = d+'|'+name, planned = key in NHm, h = NHm[key];
       const showNight = planned || g.야간.length || open.has(key);
       const it = {ev, day:g.주간, night:g.야간};
-      return '<div class="ad-day'+(d===todayKey?' today':'')+'"><div class="ad-head">'+md(d)+((DATA.closings||{})[d.slice(0,7)]?'<span class="lockb">마감</span>':'')+' '+needLine(d, it)+'</div>'+
+      return '<div class="ad-day'+(d===todayKey?' today':'')+'" data-day="'+d+'"><div class="ad-head">'+md(d)+((DATA.closings||{})[d.slice(0,7)]?'<span class="lockb">마감</span>':'')+' '+needLine(d, it)+'</div>'+
         '<div class="ad-row"><span class="k">주간</span><span class="ad-names">'+g.주간.map(n=>chip(n,d,0)).join("")+adder(d,0)+'</span></div>'+
         (showNight
           ? '<div class="ad-row night"><span class="k">야간</span><span class="ad-names">'+g.야간.map(n=>chip(n,d,1)).join("")+adder(d,1)+
@@ -229,7 +270,7 @@ function assignOne(name, dates, person, shift, remove, overwrite){
 function addFromInput(inp){
   const v = inp.value.trim(); if(!v) return;
   if(!DATA.members.some(m=>m.name===v)){ toast("팀원 명단에 없는 이름이에요: "+v, true); return; }
-  const box = inp.closest(".nedit"), name = box.dataset.nbox;
+  const box = $("ed-body"), name = ADM.evOpen;
   if(inp.id==="ad-all-n"){
     const ev = DATA.events.find(x=>x.name===name);
     assignOne(name, datesBetween(ev.start, ev.end), v, Number(box.querySelector("#ad-all-s").value), false, false);
@@ -239,10 +280,10 @@ function addFromInput(inp){
   }
   inp.value = "";
 }
-$("e-list").addEventListener("change", e=>{ const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp && inp.id!=="ad-all-n") addFromInput(inp); });
+$("e-detail").addEventListener("change", e=>{ const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp && inp.id!=="ad-all-n") addFromInput(inp); });
 // 목록에서 이름을 고르면 바로 추가 (휴대폰은 고를 때 change 대신 input이 먼저 와요)
-$("e-list").addEventListener("input", e=>{ const inp = e.target.closest("[data-aadd]"); if(inp && e.inputType==="insertReplacementText") addFromInput(inp); });
-$("e-list").addEventListener("keydown", e=>{ if(e.key!=="Enter" || e.isComposing) return; const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp){ e.preventDefault(); addFromInput(inp); } });
+$("e-detail").addEventListener("input", e=>{ const inp = e.target.closest("[data-aadd]"); if(inp && e.inputType==="insertReplacementText") addFromInput(inp); });
+$("e-detail").addEventListener("keydown", e=>{ if(e.key!=="Enter" || e.isComposing) return; const inp = e.target.closest("[data-aadd],#ad-all-n"); if(inp){ e.preventDefault(); addFromInput(inp); } });
 
 // 행사 관리: 월별 행사 목록
 function renderEventList(){
@@ -260,31 +301,21 @@ function renderEventList(){
   $("e-month").value = ey+"-"+pad(em+1);
   document.querySelector(".mnav").classList.toggle("dim", !!q);
   $("e-title").textContent = q ? "검색 결과 "+evs.length+"개" : (em+1)+"월 행사 "+evs.length+"개";
-  const keepY = window.scrollY;
+  ADM.evOrder = evs.map(e=>e.name);
   let lastMon = "";
   $("e-list").innerHTML = evs.map(e=>{ const c = clsFor(e.type);
     const monHead = (q && e.start.slice(0,7)!==lastMon) ? '<div class="emon">'+Number(e.start.slice(0,4))+"년 "+Number(e.start.slice(5,7))+'월</div>' : '';
     lastMon = e.start.slice(0,7);
-    const ovN = Object.keys(DATA.needOv||{}).filter(k=>k.endsWith("|"+e.name)).length;
-    return monHead+'<div class="erow" data-evrow="'+esc(e.name)+'"><i class="sw '+c+'"></i><div class="emain"><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
-      '<span>'+esc(e.type||"종류 없음")+' · '+mm(e.start)+(e.end!==e.start?"–"+mm(e.end):"")+' · 배정 '+(cnt[e.name]||0)+'칸'+(e.place?' · '+esc(e.place):'')+'</span>'+
-      (e.manager||e.contact?'<span>담당 '+esc(e.manager||"")+(e.contact?' '+esc(e.contact):'')+'</span>':'')+
-      (e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+
-      (()=>{ const nn = nightsOf(e.name), ks = Object.keys(nn).sort();
-        return ks.length ? '<span class="nightinfo">야간 '+ks.map(k=>Number(k.slice(5,7))+"/"+Number(k.slice(8,10))+(nn[k]?" "+nn[k]+"h":"")).join(", ")+'</span>' : ''; })()+
-      '<span>필요 인원: 주간 '+(e.needDay??"-")+' · 야간 '+(e.needNight??"-")+(ovN?' (날짜별 '+ovN+'일 따로)':'')+'</span>'+
-      '<div class="actions" style="margin-top:4px">'+
-        '<button type="button" class="lnk" data-aedit="'+esc(e.name)+'"><b>인원 배정</b></button>'+
-        '<button type="button" class="lnk" data-eedit="'+esc(e.name)+'">정보 수정</button>'+
-        '<button type="button" class="lnk" data-needit="'+esc(e.name)+'">날짜별 인원</button>'+
-        '<button type="button" class="lnk" data-nedit="'+esc(e.name)+'">야간 날짜</button></div>'+
-      '<div class="nedit" data-nbox="'+esc(e.name)+'" hidden></div></div>'+
-      '<button type="button" class="danger" data-del="'+esc(e.name)+'">삭제</button></div>'; }).join("")
+    const sh = shortDays(e.name), nn = Object.keys(nightsOf(e.name)).length;
+    const noNeed = e.needDay==null && e.needNight==null;
+    return monHead+'<div class="erow eopen" data-open="'+esc(e.name)+'" role="button" tabindex="0"><i class="sw '+c+'"></i><div class="emain"><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
+      '<span>'+esc(e.type||"종류 없음")+' · '+mm(e.start)+(e.end!==e.start?"–"+mm(e.end):"")+(e.place?' · '+esc(e.place):'')+'</span>'+
+      '<div class="ebadges"><span class="ebadge">배정 '+(cnt[e.name]||0)+'칸</span>'+
+        (sh ? '<span class="ebadge bad">부족 '+sh+'일</span>' : noNeed ? '' : '<span class="ebadge ok">인원 OK</span>')+
+        (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+'</div>'+
+      '</div><span class="chev" aria-hidden="true">›</span></div>'; }).join("")
     || '<p class="empty">'+(q?'"'+esc(q)+'"(이)가 들어간 행사가 없어요.':(em+1)+'월에는 행사가 없어요.')+'</p>';
   $("memlist").innerHTML = DATA.members.map(mb=>'<option value="'+esc(mb.name)+'">').join("");
-  // 인원 배정 창이 열려 있었다면 다시 열어 둠 (저장할 때마다 닫히지 않게)
-  if(ADM.openBox){
-    const box = [...$("e-list").querySelectorAll("[data-nbox]")].find(x=>x.dataset.nbox===ADM.openBox);
-    if(box){ renderAssignBox(box, ADM.openBox); window.scrollTo(0, keepY); } else ADM.openBox = null;
-  }
+  // 행사 화면이 열려 있으면 그 화면을 새 데이터로 다시 그림 (스크롤 위치 유지)
+  if(ADM.evOpen){ const y0 = window.scrollY; renderEventDetail(); window.scrollTo(0, y0); }
 }

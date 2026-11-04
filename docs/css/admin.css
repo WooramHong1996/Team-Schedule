@@ -174,3 +174,27 @@ body.admin .brand .lo{display:none}
 body.busy{cursor:progress}
 body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
 @media (max-width:720px){ .barcol,.hide-m{display:none} .count{margin-left:0;width:100%} .ptable{font-size:.8rem} .ptable th,.ptable td{padding:7px 4px} }
+
+/* ---------- 행사 관리: 목록(요약) → 행사 하나 화면 ---------- */
+.erow.eopen{cursor:pointer;align-items:center;border-radius:8px;padding:10px 6px;margin:0 -6px}
+.erow.eopen:hover,.erow.eopen:focus-visible{background:color-mix(in srgb,var(--accent) 8%,transparent);outline:none}
+.erow .chev{color:var(--muted);font-size:1.2rem;flex-shrink:0;padding-left:4px}
+.ebadges{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.ebadge{font-size:.72rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.ebadge.bad{border-color:#c62828;color:#c62828;font-weight:700}
+.ebadge.ok{border-color:#2e7d32;color:#2e7d32}
+.edtop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ednav{margin-left:auto;display:flex;gap:6px}
+.ednav-btn{font:inherit;font-size:.9rem;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer}
+.ednav-btn:disabled{opacity:.35;cursor:default}
+.edhead{display:grid;gap:4px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.edhead h2{margin:0;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.edhead .meta{color:var(--muted);font-size:.85rem}
+.edhead .memo{font-size:.85rem;white-space:pre-wrap}
+.edtabs{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:3;padding-top:4px}
+.edtabs button{font:inherit;font-size:.9rem;white-space:nowrap;padding:10px 6px;border:0;border-bottom:3px solid transparent;background:none;color:var(--muted);cursor:pointer;flex:1}
+.edtabs button[aria-selected="true"]{color:var(--fg);font-weight:700;border-bottom-color:var(--accent)}
+.edbody{border:0;padding:12px 0 0;margin:0}
+.edbody h3{margin:8px 0 0;font-size:1rem}
+.edbody .dangerzone{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ad-day.flash{animation:flash 1.6s ease-out}

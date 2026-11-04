@@ -83,18 +83,36 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     T('admin sees all', await p.evaluate(() => DATA.assign.length === 5));
     // 배정 충돌 → 덮어쓰기
     await p.evaluate(() => { ADM.evM = new Date(2026, 10, 1); admTab('events'); });
-    await p.click('[data-aedit="구리 총회"]'); await p.waitForTimeout(150);
-    const inp = await p.$('[data-nbox="구리 총회"] [data-aadd]');
+    T('list is summary only (no edit buttons)', await p.evaluate(() => !document.querySelector('#e-list [data-eedit],#e-list [data-del],#e-list .nedit') && document.querySelectorAll('#e-list [data-open]').length === 2));
+    await p.click('[data-open="구리 총회"]'); await p.waitForTimeout(150);
+    T('detail opens alone', await p.evaluate(() => !$('e-detail').hidden && $('e-listview').hidden && $('ed-head').textContent.includes('구리 총회') && document.querySelector('[data-etab="assign"]').getAttribute('aria-selected')==='true'));
+    const inp = await p.$('#ed-body [data-aadd]');
     await inp.fill('홍우람'); await inp.press('Enter'); await p.waitForTimeout(500);
     T('conflict overwrite moved 홍우람', await p.evaluate(() => DATA.assign.some(a => a.name === '홍우람' && a.event === '구리 총회' && a.date === '2026-11-04')
       && !DATA.assign.some(a => a.name === '홍우람' && a.event === '수원 메쎄 입주자박람회')));
     // 빼기
     await p.evaluate(() => assignOne('구리 총회', ['2026-11-04'], '홍우람', 0, true, false)); await p.waitForTimeout(400);
     T('remove works', await p.evaluate(() => !DATA.assign.some(a => a.name === '홍우람')));
+    // 이전/다음, 탭, 목록으로
+    T('prev/next buttons', await p.evaluate(() => { const o = ADM.evOrder; return o.length===2 && ($('ed-prev').disabled === (o.indexOf('구리 총회')===0)); }));
+    await p.click('#ed-prev:not([disabled]), #ed-next:not([disabled])'); await p.waitForTimeout(150);
+    T('moved to other event', await p.evaluate(() => ADM.evOpen === '수원 메쎄 입주자박람회' && $('ed-head').textContent.includes('수원 메쎄')));
+    await p.click('[data-etab="info"]'); await p.waitForTimeout(100);
+    T('info tab has form + delete', await p.evaluate(() => !!document.querySelector('#ed-body [data-esave]') && !!document.querySelector('#ed-body [data-del]')));
+    await p.click('[data-etab="extra"]'); await p.waitForTimeout(100);
+    T('extra tab has nights + needs', await p.evaluate(() => !!document.querySelector('#ed-body [data-nsave]') && !!document.querySelector('#ed-body [data-ndsave]')));
+    await p.click('#ed-back'); await p.waitForTimeout(200);
+    T('back to list', await p.evaluate(() => $('e-detail').hidden && !$('e-listview').hidden && !ADM.evOpen));
+    // 달력 날짜 카드 → 그 행사 화면, 그 날짜로
+    await p.evaluate(() => { admTab('cal'); jumpToEvent('수원 메쎄 입주자박람회', '2026-11-05'); }); await p.waitForTimeout(200);
+    T('jump from calendar opens detail at date', await p.evaluate(() => ADM.tab==='events' && ADM.evOpen==='수원 메쎄 입주자박람회' && !!document.querySelector('#ed-body [data-day="2026-11-05"]')));
+    await p.click('.atabs [data-t="events"]'); await p.waitForTimeout(200);
+    T('events tab again -> list', await p.evaluate(() => !ADM.evOpen && !$('e-listview').hidden));
     // 행사 추가 + 인원
     await p.evaluate(() => { $("e-adddet").open = true; const f = $("e-form").elements; f.name.value = '테스트 행사'; f.type.value = '외부'; f.start.value = '2026-11-10'; f.end.value = '2026-11-11'; });
     await p.fill('#e-pin', '오한솔'); await p.press('#e-pin', 'Enter');
     await p.click('#e-form button[type=submit]'); await p.waitForTimeout(800);
+    T('after add, detail of new event', await p.evaluate(() => ADM.evOpen === '테스트 행사' && !$('e-detail').hidden));
     T('event added with people', await p.evaluate(() => DATA.events.some(e => e.name === '테스트 행사') && DATA.assign.filter(a => a.event === '테스트 행사' && a.name === '오한솔').length === 2));
     // 행사 이름 바꾸기
     await p.evaluate(() => api.adminUpdateEvent('테스트 행사', { name: '테스트 행사2', type: '외부', start: '2026-11-10', end: '2026-11-11' }).then(r => admApply(r.data), admFail)); await p.waitForTimeout(400);
@@ -133,8 +151,9 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     await p.click('#m-flist .mrow[data-n="박진원"] [data-restore]'); await p.waitForTimeout(400);
     T('restore', await p.evaluate(() => DATA.members.some(m=>m.name==='박진원') && !DATA.formerMembers.length));
     // 지난 기록 있는 행사 삭제 막기
-    await p.evaluate(() => { ADM.evM = new Date(2026, 10, 1); $('e-q').value=''; admTab('events'); });
-    await p.click('[data-del="구리 총회"]'); await p.waitForTimeout(400);
+    await p.evaluate(() => { ADM.evM = new Date(2026, 10, 1); $('e-q').value=''; admTab('events'); if(ADM.evOpen) showEventList(); });
+    await p.click('[data-open="구리 총회"]'); await p.click('[data-etab="info"]'); await p.waitForTimeout(100);
+    await p.click('#ed-body [data-del]'); await p.waitForTimeout(400);
     T('event with past record not deleted', (await p.textContent('#toast')).includes('지울 수 없어요') && await p.evaluate(() => DATA.events.some(e=>e.name==='구리 총회')));
     // 급여 화면
     await p.evaluate(() => admTab('people')); await p.waitForTimeout(200);

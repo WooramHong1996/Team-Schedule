@@ -453,7 +453,8 @@ body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
       <input type="text" id="m-q" class="count" placeholder="이름·초성 검색" autocomplete="off"
         style="font:inherit;font-size:16px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);padding:0 10px;max-width:12em"></div>
     <div id="m-list"></div>
-    <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 삭제하면 그 사람의 배정도 함께 지워져요. 이름을 고쳐도 배정은 그대로 유지돼요. 팀원이 카카오로 처음 로그인하면 위에 "연결 요청"이 뜨고, 명단의 누구인지 골라 연결하면 그때부터 본인 일정이 보여요. 카카오가 연결된 사람은 "간부 지정"을 누르면 관리자 화면을 쓸 수 있어요(관리자는 최소 1명 남아야 해요).</p>
+    <details id="m-former" class="allp" hidden style="margin-top:10px"><summary>퇴사자 <span id="m-fcnt"></span></summary><div id="m-flist"></div></details>
+    <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 퇴사 처리하면 지난 근무 기록과 급여는 그대로 남고 명단·로그인에서만 빠져요(오늘 이후 배정은 빠져요). 퇴사자는 아래 목록에서 복귀시킬 수 있어요. 이름을 고쳐도 배정은 그대로 유지돼요. 팀원이 카카오로 처음 로그인하면 위에 "연결 요청"이 뜨고, 명단의 누구인지 골라 연결하면 그때부터 본인 일정이 보여요. 카카오가 연결된 사람은 "간부 지정"을 누르면 관리자 화면을 쓸 수 있어요(관리자는 최소 1명 남아야 해요).</p>
   </section>
 
   <div class="who calview">
@@ -499,7 +500,7 @@ function setData(d){
   d.assign = (d.assign||[]).map(a => Array.isArray(a) ? {date:a[0], name:a[1], shift:a[2]?"야간":"주간", event:a[3]} : a);
   DATA = d;
   evMap = new Map(DATA.events.map((e,i)=>[e.name,{...e,idx:i,cls:clsFor(e.type)}]));
-  noCert = new Set(DATA.members.filter(m=>!m.cert).map(m=>m.name));
+  noCert = new Set([...DATA.members, ...(DATA.formerMembers||[])].filter(m=>!m.cert).map(m=>m.name));
   byDate = new Map();
   DATA.assign.forEach(a=>{ if(!byDate.has(a.date)) byDate.set(a.date,[]); byDate.get(a.date).push(a); });
 }
@@ -1173,7 +1174,7 @@ $("e-list").addEventListener("click", e=>{
   }
   const b = e.target.closest("[data-del]"); if(!b) return;
   const name = b.dataset.del;
-  if(!confirm("「"+name+"」 행사를 지울까요?\n행사 탭에서 이 줄이 삭제돼요.")) return;
+  if(!confirm("「"+name+"」 행사를 지울까요?\n(이미 지난 근무 기록이 있는 행사는 급여 기록 보호를 위해 지울 수 없어요)")) return;
   const go = clear => run().withSuccessHandler(r=>{
       if(!r.ok && r.assigned){ busy(false);
         if(confirm("이 행사에 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 모두 지우고 행사를 삭제할까요?")) { busy(true); go(true); }
@@ -1274,8 +1275,16 @@ function admRenderMembers(){
         [["","이수증 모름"],["있음","이수증 있음"],["없음","이수증 없음"]].map(([v,t])=>'<option value="'+v+'"'+(v===c?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
       '<button type="button" class="lnk" data-rate>일당</button>'+
       '<button type="button" class="lnk" data-rename>이름 고치기</button>'+
-      '<button type="button" class="danger" data-mdel>삭제</button></div>'; }).join("")
+      '<button type="button" class="danger" data-retire>퇴사 처리</button></div>'; }).join("")
     || '<p class="empty">'+(q?'맞는 이름이 없어요.':'팀원이 없어요.')+'</p>';
+  const former = (DATA.formerMembers||[]).filter(m=>matchName(m.name,q));
+  $("m-former").hidden = !(DATA.formerMembers||[]).length;
+  $("m-fcnt").textContent = (DATA.formerMembers||[]).length+"명";
+  $("m-flist").innerHTML = former.map(m=>'<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+
+      '<span class="ma">근무 기록 '+(cnt[m.name]||0)+'칸'+(m.retiredAt?' · 퇴사 '+esc(m.retiredAt):'')+'</span>'+
+      '<button type="button" class="lnk" data-restore>복귀</button>'+
+      (cnt[m.name] ? '' : '<button type="button" class="danger" data-hdel>완전 삭제</button>')+'</div>').join("")
+    || '<p class="empty">맞는 이름이 없어요.</p>';
 }
 $("m-q").addEventListener("input", admRenderMembers);
 $("m-form").addEventListener("submit", ev=>{
@@ -1330,15 +1339,30 @@ $("m-list").addEventListener("click", e=>{
     run().withSuccessHandler(r=>{ busy(false); if(person===n) person=nn.trim(); admApply(r.data); toast(n+" → "+nn.trim()); })
       .withFailureHandler(admFail).adminRenameMember(ADM.token, n, nn.trim());
   }
-  if(e.target.closest("[data-mdel]")){
-    if(!confirm(n+" 님을 팀원에서 삭제할까요?")) return;
-    const go = clear => run().withSuccessHandler(r=>{
-        if(!r.ok && r.assigned){ busy(false);
-          if(confirm(n+" 님에게 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 지우고 삭제할까요?")){ busy(true); go(true); }
+  if(e.target.closest("[data-retire]")){
+    if(!confirm(n+" 님을 퇴사 처리할까요?\n지난 근무 기록과 급여는 그대로 남고, 명단·배정 목록·로그인에서만 빠져요. 나중에 복귀시킬 수 있어요.")) return;
+    const go = ok => run().withSuccessHandler(r=>{
+        if(!r.ok && r.future){ busy(false);
+          if(confirm(n+" 님은 오늘 이후 배정이 "+r.future+"칸 남아 있어요.\n그 배정은 빼고 퇴사 처리할까요?")){ busy(true); go(true); }
           return; }
-        busy(false); aSel.delete(n); admApply(r.data); toast(n+" 님을 삭제했어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
-      }).withFailureHandler(admFail).adminDeleteMember(ADM.token, n, clear);
+        busy(false); aSel.delete(n); admApply(r.data); toast(n+" 님을 퇴사 처리했어요."+(r.cleared?" (앞으로의 배정 "+r.cleared+"칸 뺌)":""));
+      }).withFailureHandler(admFail).adminRetireMember(ADM.token, n, ok);
     busy(true); go(false);
+  }
+});
+$("m-flist").addEventListener("click", e=>{
+  const row = e.target.closest(".mrow"); if(!row) return;
+  const n = row.dataset.n;
+  if(e.target.closest("[data-restore]")){
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 님을 복귀시켰어요. 카카오 연결은 다시 해 주세요."); })
+      .withFailureHandler(admFail).adminRestoreMember(ADM.token, n);
+  }
+  if(e.target.closest("[data-hdel]")){
+    if(!confirm(n+" 님을 완전히 삭제할까요? (근무 기록이 없어서 지울 수 있어요)")) return;
+    busy(true);
+    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 님을 삭제했어요."); })
+      .withFailureHandler(admFail).adminDeleteMember(ADM.token, n);
   }
 });
 
@@ -1395,7 +1419,7 @@ function admRenderPanels(){
   const won = v => v==null ? "-" : Math.round(v).toLocaleString("ko-KR")+"원";
   const hrs = v => (Math.round(v*10)/10)+"시간";
   const NH = DATA.nightHours || {};
-  const mem = new Map(DATA.members.map(mb=>[mb.name,mb]));
+  const mem = new Map([...(DATA.formerMembers||[]), ...DATA.members].map(mb=>[mb.name,mb]));
   const blank = () => ({exh:0,out:0,etc:0,hr:0,hours:0,night:0,days:new Set()});
   const st = new Map(DATA.members.map(mb=>[mb.name,blank()]));
   DATA.assign.forEach(a=>{ if(a.date<mStart||a.date>mEnd) return;

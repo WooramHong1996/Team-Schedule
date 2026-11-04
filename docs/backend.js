@@ -27,6 +27,7 @@
     const n = Number(s);
     return isFinite(n) ? n : null;
   };
+  const today = () => iso(new Date());
   const stamp = () => { const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 
   function fail(error, fallback) {
@@ -90,7 +91,7 @@
   /* ---------------- 데이터 읽기 ---------------- */
   async function buildAdmin() {
     const [members, events, assigns, nights, needs, reqs, admins] = await Promise.all([
-      fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,sort_order', q => q.order('sort_order').order('id')),
+      fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
       fetchAll('events', '*', q => q.order('start_date').order('id')),
       fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
       fetchAll('night_plans', 'work_date,event_id,hours'),
@@ -111,6 +112,10 @@
         name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '', note: m.note || '',
         rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour, linked: !!m.user_id,
         isAdmin: !!(m.user_id && adminSet.has(m.user_id)), isMe: !!(S.user && m.user_id === S.user.id)
+      })),
+      formerMembers: members.filter(m => !m.active).map(m => ({
+        name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '', rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour,
+        retiredAt: m.retired_at ? String(m.retired_at).slice(0, 10) : ''
       })),
       events: events.map(e => ({
         name: e.name, type: e.type || '', start: e.start_date, end: e.end_date, place: e.place || '',
@@ -240,6 +245,9 @@
   }
   async function adminDeleteEvent(_t, name, clear) {
     const ev = await eventRow(name);
+    const { count: past, error: pe } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id).lt('work_date', today());
+    fail(pe);
+    if (past) throw new Error('「' + name + '」에는 이미 지난 근무 기록이 ' + past + '칸 있어서 지울 수 없어요. (급여 기록 보호) 앞으로의 배정만 빼려면 인원 배정에서 빼 주세요.');
     const { count, error: ce } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id);
     fail(ce);
     if (count && !clear) return { ok: false, assigned: count };
@@ -284,6 +292,8 @@
     if (!name) throw new Error('이름을 적어 주세요.');
     const { data: last } = await sb.from('members').select('sort_order').order('sort_order', { ascending: false }).limit(1);
     const pick = (v, d) => { const x = num(v); return x == null ? d : x; };
+    const { data: same } = await sb.from('members').select('active').eq('name', name).maybeSingle();
+    if (same && !same.active) throw new Error('퇴사자 목록에 같은 이름(' + name + ')이 있어요. 같은 사람이면 퇴사자 목록에서 "복귀"를 눌러 주세요. 다른 사람이면 이름 뒤에 숫자를 붙여 주세요.');
     const { error } = await sb.from('members').insert({
       name, cert: ['있음', '없음'].includes(f.cert) ? f.cert : null,
       rate_exh: pick(f.rateExh, DEFAULT_RATE.exh), rate_out: pick(f.rateOut, DEFAULT_RATE.out), rate_hour: pick(f.rateHour, DEFAULT_RATE.hour),
@@ -311,14 +321,37 @@
     const { count } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('member_id', id);
     return done({ renamed: count || 0 });
   }
-  async function adminDeleteMember(_t, name, clear) {
+  /* 완전 삭제는 근무 기록이 하나도 없을 때만 (잘못 만든 팀원 정리용) */
+  async function adminDeleteMember(_t, name) {
     const id = await memberId(name);
     const { count, error: ce } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('member_id', id);
     fail(ce);
-    if (count && !clear) return { ok: false, assigned: count };
+    if (count) throw new Error(name + ' 님은 근무 기록이 ' + count + '칸 있어서 완전 삭제할 수 없어요. 퇴사 처리로 충분해요.');
     const { error } = await sb.from('members').delete().eq('id', id);
     fail(error);
-    return done({ cleared: count || 0 });
+    return done();
+  }
+  /* 퇴사 처리: 지난 기록·급여는 그대로, 오늘 이후 배정만 빼고 명단·로그인에서 제외 */
+  async function adminRetireMember(_t, name, confirmFuture) {
+    const { data: m, error: me } = await sb.from('members').select('id,user_id').eq('name', name).maybeSingle();
+    fail(me);
+    if (!m) throw new Error('팀원을 찾지 못했어요: ' + name);
+    const { data: fut, error: fe } = await sb.from('assignments').select('id').eq('member_id', m.id).gte('work_date', today());
+    fail(fe);
+    if (fut.length && !confirmFuture) return { ok: false, future: fut.length };
+    if (m.user_id) {
+      const { error: ae } = await sb.from('admins').delete().eq('user_id', m.user_id);
+      fail(ae);
+    }
+    if (fut.length) { const { error } = await sb.from('assignments').delete().in('id', fut.map(r => r.id)); fail(error); }
+    const { error } = await sb.from('members').update({ active: false, retired_at: new Date().toISOString(), user_id: null }).eq('id', m.id);
+    fail(error);
+    return done({ cleared: fut.length });
+  }
+  async function adminRestoreMember(_t, name) {
+    const { error } = await sb.from('members').update({ active: true, retired_at: null }).eq('id', await memberId(name));
+    fail(error);
+    return done();
   }
   /* 카카오 계정 ↔ 팀원 연결 */
   async function adminLinkMember(_t, userId, name) {
@@ -362,7 +395,7 @@
   const API = {
     getData, refreshData: getData, adminGetData: () => buildAdmin(), adminLogout: logout,
     adminSetAssign, adminAddEvent, adminUpdateEvent, adminDeleteEvent, adminSetEventNeeds, adminSetEventNights, adminSetNightHours,
-    adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember,
+    adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember, adminRetireMember, adminRestoreMember,
     adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin
   };
 

@@ -5,8 +5,6 @@
 --          본인 배정 + "같은 날 같은 행사"에 함께 들어간 사람 이름만 볼 수 있음
 --  * 급여·연락처·메모는 관리자만 (본인 일당은 본인에게만)
 
-create extension if not exists btree_gist;
-
 -- ---------- 테이블 ----------
 create table public.members (
   id          bigint generated always as identity primary key,
@@ -99,12 +97,12 @@ create table public.audit_log (
 -- ---------- 도우미 함수 ----------
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.admins where user_id = auth.uid());
+  select exists (select 1 from public.admins where user_id = (select auth.uid()));
 $$;
 
 create or replace function public.my_member_id() returns bigint
 language sql stable security definer set search_path = public as $$
-  select id from public.members where user_id = auth.uid() and active;
+  select id from public.members where user_id = (select auth.uid()) and active;
 $$;
 
 -- ---------- 권한 ----------
@@ -118,22 +116,22 @@ alter table public.link_requests  enable row level security;
 alter table public.audit_log      enable row level security;
 
 -- 관리자: 전부
-create policy admin_all on public.members        for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_all on public.events         for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_all on public.assignments    for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_all on public.night_plans    for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_all on public.need_overrides for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_read on public.admins        for select using (public.is_admin());
-create policy admin_all on public.link_requests  for all using (public.is_admin()) with check (public.is_admin());
-create policy admin_read on public.audit_log     for select using (public.is_admin());
+create policy admin_all on public.members        for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_all on public.events         for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_all on public.assignments    for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_all on public.night_plans    for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_all on public.need_overrides for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_read on public.admins        for select to authenticated using ((select public.is_admin()));
+create policy admin_all on public.link_requests  for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+create policy admin_read on public.audit_log     for select to authenticated using ((select public.is_admin()));
 
 -- 팀원: 본인 정보 / 본인 배정만 (함께 일하는 사람은 아래 함수로)
-create policy self_read on public.members     for select using (user_id = auth.uid());
-create policy self_read on public.assignments for select using (member_id = public.my_member_id());
+create policy self_read on public.members     for select to authenticated using (user_id = (select auth.uid()));
+create policy self_read on public.assignments for select to authenticated using (member_id = (select public.my_member_id()));
 
 -- 연결 요청: 본인 것만 만들고 볼 수 있음
-create policy self_req_insert on public.link_requests for insert with check (user_id = auth.uid());
-create policy self_req_read   on public.link_requests for select using (user_id = auth.uid());
+create policy self_req_insert on public.link_requests for insert to authenticated with check (user_id = (select auth.uid()));
+create policy self_req_read   on public.link_requests for select to authenticated using (user_id = (select auth.uid()));
 
 -- ---------- 팀원 화면용 함수 ----------
 -- 기간 안의 내 일정 + 같은 날 같은 행사에 들어간 사람 이름
@@ -170,6 +168,7 @@ begin
           case when tg_op in ('INSERT','UPDATE') then to_jsonb(new) end);
   return coalesce(new, old);
 end $$;
+revoke all on function public.log_change() from public, anon, authenticated;
 
 create trigger audit_members        after insert or update or delete on public.members        for each row execute function public.log_change();
 create trigger audit_events         after insert or update or delete on public.events         for each row execute function public.log_change();

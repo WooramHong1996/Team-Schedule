@@ -89,14 +89,29 @@
         if(table==='members' && T.assignments.some(x=>ids.includes(x.member_id) && x.work_date<today)) return err('P0001','지난 근무 기록이 있는 팀원은 삭제할 수 없어요.');
         if(table==='events' && T.assignments.some(x=>ids.includes(x.event_id) && x.work_date<today)) return err('P0001','지난 근무 기록이 있는 행사는 삭제할 수 없어요.');
         T[table] = rows.filter(r=>!match(r)); cascade(table, ids);
-        return { data:null, error:null };
+        return { data: st.ret ? tgt.map(r=>({...r})) : null, error:null };
       }
     }
     return q;
   }
   window.supabase = { createClient(){ return {
     from: Q,
-    rpc(name, args){ if(name==='close_month') return Promise.resolve().then(()=>{
+    rpc(name, args){ if(name==='set_assignments') return Promise.resolve().then(()=>{
+        if(!isAdmin()) return { data:null, error:{code:'42501',message:'관리자만'} };
+        const ev=T.events.find(e=>e.name===args.p_event); if(!ev) return { data:null, error:{code:'P0001',message:'행사를 찾지 못했어요: '+args.p_event} };
+        const mem=T.members.filter(m=>args.p_names.includes(m.name)&&m.active!==false), ids=mem.map(m=>m.id);
+        const missing=args.p_names.filter(n=>!mem.some(m=>m.name===n));
+        const cur=T.assignments.filter(a=>args.p_dates.includes(a.work_date)&&ids.includes(a.member_id)&&a.shift===args.p_shift);
+        const conf=cur.filter(a=>a.event_id!==ev.id).map(a=>({date:a.work_date,name:T.members.find(m=>m.id===a.member_id).name,current:T.events.find(e=>e.id===a.event_id).name}));
+        if(conf.length && !args.p_overwrite) return { data:{ok:false,conflicts:conf}, error:null };
+        const touched = cur.filter(a=>a.event_id!==ev.id).concat(args.p_dates.flatMap(d=>ids.filter(id=>!cur.some(a=>a.work_date===d&&a.member_id===id)).map(id=>({work_date:d}))));
+        { const lk = lockCheck('assignments', touched); if(lk) return { data:null, error:lk }; }
+        let changed=0;
+        cur.forEach(a=>{ if(a.event_id!==ev.id){ a.event_id=ev.id; changed++; } });
+        args.p_dates.forEach(d=>ids.forEach(id=>{ if(!T.assignments.some(a=>a.work_date===d&&a.member_id===id&&a.shift===args.p_shift)){ T.assignments.push({id:++seq,work_date:d,member_id:id,shift:args.p_shift,event_id:ev.id}); changed++; } }));
+        if(args.p_shift==='야간'&&args.p_night_hours!=null) args.p_dates.forEach(d=>{ const n=T.night_plans.find(x=>x.work_date===d&&x.event_id===ev.id); if(n) n.hours=args.p_night_hours; else T.night_plans.push({work_date:d,event_id:ev.id,hours:args.p_night_hours}); });
+        return { data:{ok:true,changed,missing}, error:null }; });
+      if(name==='close_month') return Promise.resolve().then(()=>{
         if(!isAdmin()) return { data:null, error:{code:'42501',message:'관리자만'} };
         const m0=args.p_month.slice(0,7)+'-01'; if(T.payroll_closings.some(c=>c.month===m0)) return { data:null, error:{code:'P0001',message:'이미 마감된 달이에요.'} };
         const byM={};

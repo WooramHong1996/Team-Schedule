@@ -125,7 +125,7 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     await p.evaluate(() => admTab('members')); await p.waitForTimeout(150);
     await p.click('#m-list .mrow[data-n="박진원"] [data-retire]'); await p.waitForTimeout(500);
     T('retired keeps past, removes future', await p.evaluate(() => !DATA.members.some(m=>m.name==='박진원') && DATA.formerMembers.some(m=>m.name==='박진원')
-      && DATA.assign.some(a=>a.name==='박진원' && a.date==='2026-10-01') && !DATA.assign.some(a=>a.name==='박진원' && a.date>='2026-11-04')));
+      && DATA.assign.some(a=>a.name==='박진원' && a.date==='2026-10-01') && (()=>{ const t=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date()); return !DATA.assign.some(a=>a.name==='박진원' && a.date>=t); })()));
     T('former list visible', await p.isVisible('#m-former'));
     await p.fill('#m-form [name=name]', '박진원'); await p.click('#m-form button[type=submit]'); await p.waitForTimeout(400);
     T('re-add retired name blocked', (await p.textContent('#toast')).includes('퇴사자 목록'));

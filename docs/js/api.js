@@ -27,7 +27,8 @@
     const n = Number(s);
     return isFinite(n) ? n : null;
   };
-  const today = () => iso(new Date());
+  // 오늘 = 한국 시간 기준 (폰 시간대 설정과 상관없이 DB와 같은 기준)
+  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
   const stamp = () => { const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 
   function fail(error, fallback) {
@@ -89,18 +90,31 @@
   }
 
   /* ---------------- 데이터 읽기 ---------------- */
-  async function buildAdmin() {
-    const [members, events, assigns, nights, needs, reqs, admins, closes, lines] = await Promise.all([
-      fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
-      fetchAll('events', '*', q => q.order('start_date').order('id')),
-      fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
-      fetchAll('night_plans', 'work_date,event_id,hours'),
-      fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
-      fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at')),
-      fetchAll('admins', 'user_id'),
-      fetchAll('payroll_closings', 'month,closed_at,closed_by_name,total'),
-      fetchAll('payroll_lines', '*')
-    ]);
+  /* 관리자 데이터는 표별로 저장해 두고, 바뀐 표만 다시 읽음 (저장할 때마다 전체를 받지 않게) */
+  const TABLES = {
+    members: () => fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
+    events: () => fetchAll('events', '*', q => q.order('start_date').order('id')),
+    assigns: () => fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
+    nights: () => fetchAll('night_plans', 'work_date,event_id,hours'),
+    needs: () => fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
+    reqs: () => fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at')),
+    admins: () => fetchAll('admins', 'user_id'),
+    closes: () => fetchAll('payroll_closings', 'month,closed_at,closed_by_name,total'),
+    lines: () => fetchAll('payroll_lines', '*')
+  };
+  const C = {};   // 표별 저장본
+  async function buildAdmin(parts) {
+    const want = (parts || Object.keys(TABLES)).concat(Object.keys(TABLES).filter(k => !C[k]));
+    const keys = [...new Set(want)];
+    const got = await Promise.all(keys.map(k => TABLES[k]()));
+    keys.forEach((k, i) => { C[k] = got[i]; });
+    // 다른 관리자가 그사이 팀원·행사를 추가했으면 그 표도 마저 읽음
+    const mIds = new Set(C.members.map(m => m.id)), eIds = new Set(C.events.map(e => e.id));
+    const stale = [];
+    if (C.assigns.some(a => !mIds.has(a.member_id))) stale.push('members');
+    if (C.assigns.some(a => !eIds.has(a.event_id)) || C.nights.concat(C.needs).some(n => !eIds.has(n.event_id))) stale.push('events');
+    if (stale.length) { const more = await Promise.all(stale.map(k => TABLES[k]())); stale.forEach((k, i) => { C[k] = more[i]; }); }
+    const { members, events, assigns, nights, needs, reqs, admins, closes, lines } = C;
     const closings = {};
     closes.forEach(c => { closings[c.month.slice(0, 7)] = { closedAt: c.closed_at, by: c.closed_by_name || '', total: Number(c.total), lines: [] }; });
     lines.forEach(l => { const c = closings[l.month.slice(0, 7)]; if (c) c.lines.push({
@@ -151,7 +165,8 @@
   }
 
   async function getData() { return S.isAdmin ? buildAdmin() : buildMember(); }
-  async function done(extra) { return Object.assign({ ok: true, data: await buildAdmin() }, extra || {}); }
+  /* 고친 뒤: parts = 다시 읽을 표 (생략하면 전부) */
+  async function done(extra, parts) { return Object.assign({ ok: true, data: await buildAdmin(parts) }, extra || {}); }
 
   /* 이름 → id (최신 목록 기준) */
   async function memberId(name) {
@@ -177,45 +192,30 @@
   async function adminSetAssign(p) {
     const shift = SHIFT[Number(p.shift) ? 1 : 0];
     const dates = (p.dates || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
-    const names = (p.names || []).map(n => String(n).trim()).filter(Boolean);
+    const names = [...new Set((p.names || []).map(n => String(n).trim()).filter(Boolean))];
+    const evName = String(p.event || '').trim(), only = String(p.onlyEvent || '').trim();
+    if (!dates.length || !names.length) return done({ changed: 0, missing: [] }, []);
+
+    if (evName) {   // 넣기·덮어쓰기: 겹침 확인과 저장을 DB에서 한 번에 (다른 관리자와 동시에 눌러도 안전)
+      const hours = shift === '야간' && p.nightHours !== undefined && String(p.nightHours).trim() !== '' ? num(p.nightHours) : null;
+      const { data, error } = await sb.rpc('set_assignments', {
+        p_dates: dates, p_names: names, p_shift: shift, p_event: evName, p_overwrite: !!p.overwrite, p_night_hours: hours
+      });
+      fail(error);
+      if (!data.ok) return { ok: false, conflicts: data.conflicts };
+      return done({ changed: data.changed, missing: data.missing || [] }, ['assigns'].concat(hours != null ? ['nights'] : []));
+    }
+
+    // 빼기: 지우는 문장 하나로
     const { data: mem, error: me } = await sb.from('members').select('id,name').in('name', names);
     fail(me);
-    const idOf = new Map(mem.map(m => [m.name, m.id]));
-    const nameOf = new Map(mem.map(m => [m.id, m.name]));
-    const missing = names.filter(n => !idOf.has(n));
-    const ids = [...idOf.values()];
-    const evName = String(p.event || '').trim(), only = String(p.onlyEvent || '').trim();
-    const ev = evName ? await eventRow(evName) : null;
-    const onlyEv = only ? await eventRow(only) : null;
-    if (!dates.length || !ids.length) return done({ changed: 0, missing });
-
-    const { data: cur, error: ce } = await sb.from('assignments').select('id,work_date,member_id,event_id')
-      .eq('shift', shift).in('work_date', dates).in('member_id', ids);
-    fail(ce);
-
-    if (!ev) {   // 빼기
-      const drop = cur.filter(r => !onlyEv || r.event_id === onlyEv.id).map(r => r.id);
-      if (drop.length) { const { error } = await sb.from('assignments').delete().in('id', drop); fail(error); }
-      return done({ changed: drop.length, missing });
-    }
-    const curKey = new Map(cur.map(r => [r.work_date + '|' + r.member_id, r]));
-    const evNames = new Map(S.events.map(e => [e.id, e.name]));
-    const conflicts = cur.filter(r => r.event_id !== ev.id)
-      .map(r => ({ date: r.work_date, name: nameOf.get(r.member_id), current: evNames.get(r.event_id) || '다른 행사' }));
-    if (conflicts.length && !p.overwrite) return { ok: false, conflicts };
-
-    const upd = cur.filter(r => r.event_id !== ev.id).map(r => r.id);
-    const add = [];
-    dates.forEach(d => ids.forEach(id => { if (!curKey.has(d + '|' + id)) add.push({ work_date: d, member_id: id, shift, event_id: ev.id }); }));
-    if (upd.length) { const { error } = await sb.from('assignments').update({ event_id: ev.id }).in('id', upd); fail(error); }
-    for (let i = 0; i < add.length; i += 500) { const { error } = await sb.from('assignments').insert(add.slice(i, i + 500)); fail(error); }
-
-    if (shift === '야간' && p.nightHours !== undefined && String(p.nightHours).trim() !== '') {
-      const h = num(p.nightHours);
-      const { error } = await sb.from('night_plans').upsert(dates.map(d => ({ work_date: d, event_id: ev.id, hours: h })), { onConflict: 'work_date,event_id' });
-      fail(error);
-    }
-    return done({ changed: upd.length + add.length, missing });
+    const ids = mem.map(m => m.id), missing = names.filter(n => !mem.some(m => m.name === n));
+    if (!ids.length) return done({ changed: 0, missing }, []);
+    let q = sb.from('assignments').delete().eq('shift', shift).in('work_date', dates).in('member_id', ids);
+    if (only) q = q.eq('event_id', (await eventRow(only)).id);
+    const { data: gone, error } = await q.select('id');
+    fail(error);
+    return done({ changed: gone.length, missing }, ['assigns']);
   }
 
   /* ---------------- 관리자: 행사 ---------------- */
@@ -234,7 +234,7 @@
     const { data, error } = await sb.from('events').insert(row).select('id').single();
     fail(error, '같은 이름의 행사가 이미 있어요: ' + row.name);
     await replaceNights(data.id, f.nights || []);
-    return done();
+    return done(null, ['events', 'nights']);
   }
   async function adminUpdateEvent(oldName, f) {
     const ev = await eventRow(oldName);
@@ -248,7 +248,7 @@
       const { count } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id);
       renamed = count || 0;
     }
-    return done({ renamed });
+    return done({ renamed }, ['events']);
   }
   async function adminDeleteEvent(name, clear) {
     const ev = await eventRow(name);
@@ -260,7 +260,7 @@
     if (count && !clear) return { ok: false, assigned: count };
     const { error } = await sb.from('events').delete().eq('id', ev.id);   // 배정·야간·필요인원은 함께 지워짐
     fail(error);
-    return done({ cleared: count || 0 });
+    return done({ cleared: count || 0 }, ['events', 'assigns', 'nights', 'needs']);
   }
   async function adminSetEventNeeds(name, rows) {
     const ev = await eventRow(name);
@@ -271,7 +271,7 @@
     const add = (rows || []).map(r => ({ work_date: r.date, event_id: ev.id, need_day: num(r.day), need_night: num(r.night), memo: memo.get(r.date) || null }))
       .filter(r => r.need_day != null || r.need_night != null);
     if (add.length) { const { error } = await sb.from('need_overrides').insert(add); fail(error); }
-    return done();
+    return done(null, ['needs']);
   }
   async function replaceNights(eventId, nights) {
     const { data: old } = await sb.from('night_plans').select('work_date,memo').eq('event_id', eventId);
@@ -284,13 +284,13 @@
   async function adminSetEventNights(name, nights) {
     const ev = await eventRow(name);
     await replaceNights(ev.id, nights);
-    return done();
+    return done(null, ['nights']);
   }
   async function adminSetNightHours(date, name, hours) {
     const ev = await eventRow(name);
     if (hours === null) { const { error } = await sb.from('night_plans').delete().eq('event_id', ev.id).eq('work_date', date); fail(error); }
     else { const { error } = await sb.from('night_plans').upsert({ work_date: date, event_id: ev.id, hours: num(hours) }, { onConflict: 'work_date,event_id' }); fail(error); }
-    return done();
+    return done(null, ['nights']);
   }
 
   /* ---------------- 관리자: 팀원 ---------------- */
@@ -307,17 +307,17 @@
       sort_order: ((last && last[0] && last[0].sort_order) || 0) + 1
     });
     fail(error, '같은 이름이 이미 있어요: ' + name + ' (동명이인이면 이름 뒤에 숫자를 붙여 주세요)');
-    return done();
+    return done(null, ['members']);
   }
   async function adminSetCert(name, v) {
     const { error } = await sb.from('members').update({ cert: ['있음', '없음'].includes(v) ? v : null }).eq('id', await memberId(name));
     fail(error);
-    return done();
+    return done(null, ['members']);
   }
   async function adminSetRates(name, out, exh, hour) {
     const { error } = await sb.from('members').update({ rate_out: num(out), rate_exh: num(exh), rate_hour: num(hour) }).eq('id', await memberId(name));
     fail(error);
-    return done();
+    return done(null, ['members']);
   }
   async function adminRenameMember(oldName, newName) {
     newName = String(newName || '').trim();
@@ -326,7 +326,7 @@
     const { error } = await sb.from('members').update({ name: newName }).eq('id', id);
     fail(error, '같은 이름이 이미 있어요: ' + newName);
     const { count } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('member_id', id);
-    return done({ renamed: count || 0 });
+    return done({ renamed: count || 0 }, ['members']);
   }
   /* 완전 삭제는 근무 기록이 하나도 없을 때만 (잘못 만든 팀원 정리용) */
   async function adminDeleteMember(name) {
@@ -336,7 +336,7 @@
     if (count) throw new Error(name + ' 님은 근무 기록이 ' + count + '칸 있어서 완전 삭제할 수 없어요. 퇴사 처리로 충분해요.');
     const { error } = await sb.from('members').delete().eq('id', id);
     fail(error);
-    return done();
+    return done(null, ['members']);
   }
   /* 퇴사 처리: 지난 기록·급여는 그대로, 오늘 이후 배정만 빼고 명단·로그인에서 제외 */
   async function adminRetireMember(name, confirmFuture) {
@@ -353,12 +353,12 @@
     if (fut.length) { const { error } = await sb.from('assignments').delete().in('id', fut.map(r => r.id)); fail(error); }
     const { error } = await sb.from('members').update({ active: false, retired_at: new Date().toISOString(), user_id: null }).eq('id', m.id);
     fail(error);
-    return done({ cleared: fut.length });
+    return done({ cleared: fut.length }, ['members', 'assigns', 'admins']);
   }
   async function adminRestoreMember(name) {
     const { error } = await sb.from('members').update({ active: true, retired_at: null }).eq('id', await memberId(name));
     fail(error);
-    return done();
+    return done(null, ['members']);
   }
   /* 카카오 계정 ↔ 팀원 연결 */
   async function adminLinkMember(userId, name) {
@@ -368,7 +368,7 @@
     const { error } = await sb.from('members').update({ user_id: userId }).eq('id', id);
     fail(error, name + ' 님은 이미 다른 카카오 계정과 연결돼 있어요. 먼저 연결을 해제해 주세요.');
     await sb.from('link_requests').delete().eq('user_id', userId);
-    return done();
+    return done(null, ['members', 'reqs']);
   }
   /* 연결 해제: 그 카카오 계정은 다시 '연결 요청'으로 돌아가서 바로 다른 사람과 다시 연결할 수 있음 */
   async function adminUnlinkMember(name) {
@@ -381,12 +381,12 @@
       const { error: re } = await sb.from('link_requests').upsert({ user_id: m.user_id, display_name: '(연결 해제됨: ' + name + ')', claimed_name: name });
       fail(re);
     }
-    return done();
+    return done(null, ['members', 'reqs']);
   }
   async function adminDismissRequest(userId) {
     const { error } = await sb.from('link_requests').delete().eq('user_id', userId);
     fail(error);
-    return done();
+    return done(null, ['reqs']);
   }
 
   /* 간부(관리자) 지정·해제 — 카카오 연결된 팀원만 */
@@ -396,19 +396,19 @@
     if (!m || !m.user_id) throw new Error(name + ' 님은 아직 카카오 연결이 안 돼 있어요. 먼저 연결해 주세요.');
     if (on) { const { error } = await sb.from('admins').upsert({ user_id: m.user_id }); fail(error); }
     else { const { error } = await sb.from('admins').delete().eq('user_id', m.user_id); fail(error); }
-    return done();
+    return done(null, ['admins']);
   }
 
   /* 급여 월 마감: ym = 'YYYY-MM' */
   async function closeMonth(ym) {
     const { data, error } = await sb.rpc('close_month', { p_month: ym + '-01' });
     fail(error);
-    return done({ total: Number(data) });
+    return done({ total: Number(data) }, ['closes', 'lines']);
   }
   async function reopenMonth(ym) {
     const { error } = await sb.from('payroll_closings').delete().eq('month', ym + '-01');
     fail(error);
-    return done();
+    return done(null, ['closes', 'lines']);
   }
 
   const API = {

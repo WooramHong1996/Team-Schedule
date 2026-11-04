@@ -38,7 +38,7 @@ async function page(browser, user) {
     if (u.includes('supabase-js')) return route.fulfill({ contentType: 'application/javascript', body: 'window.__MOCK=' + JSON.stringify(seed(user)) + ';\n' + MOCK });
     if (u.startsWith('http://app/')) {
       const f = path.join(DOCS, u.slice('http://app/'.length).split('?')[0] || 'index.html');
-      return route.fulfill({ contentType: f.endsWith('.js') ? 'application/javascript' : 'text/html', body: fs.readFileSync(f) });
+      return route.fulfill({ contentType: f.endsWith('.js') ? 'application/javascript' : f.endsWith('.css') ? 'text/css' : f.endsWith('.png') ? 'image/png' : 'text/html', body: fs.readFileSync(f) });
     }
     return route.abort();
   });

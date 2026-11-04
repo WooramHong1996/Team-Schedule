@@ -166,7 +166,7 @@ body.admin .dayonly{display:grid}
 .atabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);border-color:var(--surface);font-weight:700}
 .abar .out{margin-left:auto}
 .apanel{display:none}
-body.admin[data-tab="assign"] #adm-assign, body.admin[data-tab="events"] #adm-events, body.admin[data-tab="people"] #adm-people, body.admin[data-tab="members"] #adm-members{display:grid}
+body.admin[data-tab="events"] #adm-events, body.admin[data-tab="people"] #adm-people, body.admin[data-tab="members"] #adm-members{display:grid}
 body.admin:not([data-tab="cal"]) .calview{display:none !important}
 .form{display:grid;gap:12px}
 .frow{display:grid;gap:6px;min-width:0}
@@ -242,7 +242,6 @@ body.admin .item .t.jumpt{cursor:pointer;text-decoration:underline;text-underlin
 .nightinfo{color:var(--night-bg) !important;font-weight:700}
 .onlyn{display:flex;align-items:center;gap:8px;font-size:.85rem}
 .onlyn input{width:18px;height:18px;min-height:0}
-#adm-assign:not(.night) .nightonly{display:none}
 .nh{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8rem}
 .nh b{font-family:var(--f-num)}
 .combo.wide input{padding-right:10px}
@@ -358,37 +357,6 @@ body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
     <button type="button" class="out" id="admexit">로그아웃</button>
   </div>
 
-  <section class="panel apanel" id="adm-assign">
-    <h2>배정 입력</h2>
-    <div class="form">
-      <label class="frow"><span>행사</span><select id="a-ev"></select></label>
-      <div class="fgrid">
-        <label class="frow"><span>시작 날짜</span><input type="date" id="a-from"></label>
-        <label class="frow"><span>끝 날짜</span><input type="date" id="a-to"></label>
-        <div class="frow"><span>근무</span>
-          <div class="seg"><label><input type="radio" name="a-shift" value="0" checked><span>주간</span></label><label><input type="radio" name="a-shift" value="1"><span>야간</span></label></div>
-        </div>
-        <label class="frow nightonly"><span>야간 시간제 (시간)</span><input type="number" id="a-hours" min="0" max="24" step="0.5" inputmode="decimal" placeholder="비우면 행사에 정한 대로"></label>
-        <label class="onlyn nightonly" id="a-onlyn-wrap" style="grid-column:1/-1"><input type="checkbox" id="a-onlyn" checked> <span id="a-onlyn-txt">이 행사의 야간 날짜에만 넣기</span></label>
-      </div>
-      <div class="frow"><span>사람 (검색해서 한 명씩 추가)</span>
-        <div class="tags" id="a-tags" aria-live="polite"></div>
-        <div class="combo wide">
-          <input type="text" id="a-q" placeholder="이름 또는 초성 입력 → Enter로 추가" autocomplete="off"
-            role="combobox" aria-expanded="false" aria-controls="a-plist" aria-autocomplete="list">
-          <ul class="plist" id="a-plist" role="listbox" hidden></ul>
-        </div>
-        <details class="allp"><summary>전체 목록에서 고르기</summary><div class="people" id="a-people"></div></details>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn" id="a-add">배정 넣기</button>
-        <button type="button" class="btn sub" id="a-del">이 행사 배정 지우기</button>
-        <button type="button" class="btn sub" id="a-none">선택 해제</button>
-        <span class="count" id="a-count"></span>
-      </div>
-      <p class="foot">행사를 고르면 날짜가 행사 기간으로 채워져요. 고른 사람 × 날짜 칸에 한 번에 들어가고, 다른 행사가 이미 있는 칸은 바꾸기 전에 물어봐요.</p>
-    </div>
-  </section>
 
   <section class="panel apanel" id="adm-events">
     <details class="adddet" id="e-adddet"><summary>＋ 새 행사 추가</summary>
@@ -632,11 +600,11 @@ function render(){
   const evlist = document.getElementById("evlist");
   const mm = d => { const [yy,mo,dd]=d.split("-"); return Number(mo)+"/"+Number(dd)+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
   evlist.innerHTML = [...monthEvents.values()].sort((a,b)=>(a.start||"").localeCompare(b.start||""))
-    .map(e=>'<div class="ev'+(ADM.token?' jump':'')+'" data-jump="'+esc(e.name)+'"'+(ADM.token?' role="button" tabindex="0"':'')+'><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
+    .map(e=>'<div class="ev'+(ADM.admin?' jump':'')+'" data-jump="'+esc(e.name)+'"'+(ADM.admin?' role="button" tabindex="0"':'')+'><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
     || '<p class="empty">'+(person?esc(person)+'님은 이번 달 배정된 일정이 없어요.':'이번 달에는 등록된 행사가 없어요.')+'</p>';
 
   renderDay();
-  if(typeof ADM!=='undefined' && ADM.token && ADM.tab!=='cal') admRenderPanels();
+  if(typeof ADM!=='undefined' && ADM.admin && ADM.tab!=='cal') admRenderPanels();
 }
 
 function renderDay(){
@@ -658,10 +626,10 @@ function renderDay(){
   const nEv = person ? pItems.length : items.length;
   let html = '<h2>'+mo+'월 '+dd+'일 '+DOW[d.getDay()]+'요일<small>'+(nEv?"행사 "+nEv+"건":"")+'</small></h2>';
   if(!items.length){ html += '<p class="empty">'+(person?esc(person)+'님은 이날 일정이 없어요.':'이날은 일정이 없어요.')+'</p>'; }
-  else if(ADM.token && !person) html += items.map(admDayExtra).join("");
+  else if(ADM.admin && !person) html += items.map(admDayExtra).join("");
   else if(person) html += pItems.map(it=>{ const o = others(it);
     const onlyNight = it.mines.length===1 && it.mines[0]==="야간";
-    const jump = (typeof ADM!=="undefined" && ADM.token) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동' : '';
+    const jump = (typeof ADM!=="undefined" && ADM.admin) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동' : '';
     const shiftTxt = it.mines.map(m=> m==="야간" ? '<span class="nbadge">야간</span>' : '주간').join(" · ");
     return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
     '<span class="k">근무</span><span class="v"><b>'+shiftTxt+'</b></span>'+
@@ -678,11 +646,11 @@ function renderDay(){
 }
 
 document.getElementById("evlist").addEventListener("click", e=>{
-  const j = e.target.closest("[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+  const j = e.target.closest("[data-jump]"); if(!j || !ADM.admin) return; jumpToEvent(j.dataset.jump); });
 document.getElementById("daypanel").addEventListener("keydown", e=>{
-  if(e.key!=="Enter") return; const j = e.target.closest(".jumpcard[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+  if(e.key!=="Enter") return; const j = e.target.closest(".jumpcard[data-jump]"); if(!j || !ADM.admin) return; jumpToEvent(j.dataset.jump); });
 document.getElementById("evlist").addEventListener("keydown", e=>{
-  if(e.key!=="Enter") return; const j = e.target.closest("[data-jump]"); if(!j || !ADM.token) return; jumpToEvent(j.dataset.jump); });
+  if(e.key!=="Enter") return; const j = e.target.closest("[data-jump]"); if(!j || !ADM.admin) return; jumpToEvent(j.dataset.jump); });
 document.getElementById("grid").addEventListener("click", e=>{
   const b = e.target.closest(".day"); if(!b) return;
   selected = b.dataset.key;
@@ -699,15 +667,12 @@ document.getElementById("today").onclick = ()=>{ view=new Date(now.getFullYear()
 
 
 function showUpdated(){ document.getElementById("updated").textContent = DATA.updated+" 기준"; }
-// fresh=true(↻ 버튼)면 저장본을 건너뛰고 시트에서 바로 읽습니다.
+// 다시 불러오기 (↻ 버튼, 5분마다 자동)
 function load(fresh){
   const up = document.getElementById("updated");
   if(fresh) up.textContent = "새로 불러오는 중…";
-  const run = google.script.run
-    .withSuccessHandler(d=>{ setData(d); fillPeople(); showUpdated(); render(); })
-    .withFailureHandler(err=>{ up.textContent = "일정을 불러오지 못했어요. 새로고침해 주세요. ("+err.message+")"; });
-  if(ADM.token) run.withSuccessHandler(d=>{ admApply(d); }).adminGetData(ADM.token);
-  else fresh ? run.refreshData() : run.getData();
+  api.getData().then(d=>{ if(ADM.admin) admApply(d); else { setData(d); fillPeople(); showUpdated(); render(); } },
+    err=>{ up.textContent = "일정을 불러오지 못했어요. 새로고침해 주세요. ("+err.message+")"; });
 }
 document.getElementById("reload").onclick = ()=>load(true);
 
@@ -776,55 +741,24 @@ function setPerson(n, keepSelected){
   document.querySelector(".who").classList.toggle("on", !!person);
   try { person ? localStorage.setItem("teamCalPerson", person) : localStorage.removeItem("teamCalPerson"); } catch(e){}
   // 주소창에 ?name=이름 을 붙여 두면 그 주소를 즐겨찾기해서 바로 내 일정으로 열 수 있어요
-  try { google.script.history.replace(null, person?{name:person}:{}, ""); } catch(e){}
   if(!keepSelected) selected = (view.getMonth()===now.getMonth()&&view.getFullYear()===now.getFullYear()) ? todayKey : firstEventDay(view.getFullYear(),view.getMonth());
   render();
 }
 
 // ================= 관리자 모드 =================
-// 이름 검색 칸에 관리자 코드를 적고 Enter → 서버가 코드를 확인하고 열쇠(token)를 줍니다.
-const ADM = { token:"", tab:"cal" };
+// 관리자(간부) 계정으로 로그인하면 boot()가 ADM.admin 을 켭니다. 권한은 DB(RLS)가 다시 확인해요.
+const ADM = { admin:false, tab:"cal" };
 const $ = id => document.getElementById(id);
-const run = () => google.script.run;
 function toast(msg, bad){
   const t = $("toast"); t.textContent = msg; t.className = "toast show"+(bad?" bad":"");
   clearTimeout(toast._t); toast._t = setTimeout(()=>t.className="toast", 3500);
 }
 function busy(on){ document.body.classList.toggle("busy", !!on); }
 function admFail(err){ busy(false); toast(err && err.message ? err.message : String(err), true);
-  if(String(err && err.message).includes("만료")) doLogout(); }
+  if(/로그인이 만료/.test(String(err && err.message))) doLogout(); }
 
-function tryAdmin(code){
-  if(!code) return;
-  busy(true);
-  run().withSuccessHandler(r=>{
-    busy(false);
-    if(r && r.ok){ closeList(); pin.blur(); admEnter(r.token, r.data); }
-    else if(r && r.locked){ toast("잠시 후 다시 시도해 주세요.", true); }
-    else { plist.innerHTML = '<li class="none">"'+esc(code)+'" 이름이 없어요</li>'; plist.hidden=false; }
-  }).withFailureHandler(admFail).adminLogin(code);
-}
-function admEnter(token, data){
-  ADM.token = token;
-  try { sessionStorage.setItem("teamCalAdm", token); } catch(e){}
-  document.body.classList.add("admin");
-  person = ""; pin.value = ""; document.querySelector(".who").classList.remove("on");
-  admApply(data);
-  admTab("cal");
-  toast("관리자 모드로 들어왔어요.");
-}
-function admExit(silent){
-  if(!silent && !confirm("로그아웃할까요?")) return;
-  doLogout(); return;
-  if(ADM.token) try { run().adminLogout(ADM.token); } catch(e){}
-  ADM.token = "";
-  try { sessionStorage.removeItem("teamCalAdm"); } catch(e){}
-  document.body.classList.remove("admin");
-  admTab("cal");
-  load(false);
-  if(!silent) toast("관리자 모드를 나왔어요.");
-}
-function admApply(data){ setData(data); fillPeople(); showUpdated(); admFillForms(); render(); }
+function admExit(){ if(confirm("로그아웃할까요?")) doLogout(); }
+function admApply(data){ setData(data); fillPeople(); showUpdated(); render(); }
 function admTab(t){
   ADM.tab = t;
   document.querySelectorAll(".atabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.t===t ? "true":"false"));
@@ -834,123 +768,20 @@ function admTab(t){
 document.querySelectorAll(".atabs button").forEach(b=>b.addEventListener("click", ()=>admTab(b.dataset.t)));
 $("admexit").addEventListener("click", ()=>admExit());
 
-// ---------- 배정 입력 ----------
-const aSel = new Set();
+// ---------- 공용 ----------
 function eventsSorted(){ return [...DATA.events].sort((a,b)=>(a.start||"").localeCompare(b.start||"") || a.name.localeCompare(b.name)); }
-function admFillForms(){
-  const cur = $("a-ev").value;
-  const evs = eventsSorted();
-  const mm = s => s ? Number(s.slice(5,7))+"/"+Number(s.slice(8,10)) : "";
-  $("a-ev").innerHTML = '<option value="">행사 선택</option>' +
-    evs.map(e=>'<option value="'+esc(e.name)+'">'+esc(mm(e.start)+(e.end!==e.start?"–"+mm(e.end):""))+'  '+esc(e.name)+'</option>').join("");
-  if(evs.some(e=>e.name===cur)) $("a-ev").value = cur;
-  setTimeout(()=>{ try{ updOnlyN(); }catch(e){} });
-  admPeopleChips();
-}
-function admPeopleChips(){
-  const names = DATA.members.map(m=>m.name);
-  $("a-people").innerHTML = names.map(n=>'<button type="button" class="pchip'+(aSel.has(n)?" on":"")+'" data-n="'+esc(n)+'" aria-pressed="'+aSel.has(n)+'">'+esc(n)+(noCert.has(n)?'<small>미이수</small>':'')+'</button>').join("")
-    || '<p class="empty">맞는 이름이 없어요.</p>';
-  admCount();
-}
 function datesBetween(a,b){
   const out=[]; if(!a||!b||b<a) return out;
   const [y,m,d]=a.split("-").map(Number); let t=new Date(y,m-1,d);
   for(let k=iso(t); k<=b && out.length<62; t=new Date(t.getFullYear(),t.getMonth(),t.getDate()+1), k=iso(t)) out.push(k);
   return out;
 }
-function admCount(){
-  const days = datesBetween($("a-from").value, $("a-to").value).length;
-  $("a-count").textContent = aSel.size+"명 × "+days+"일 = "+(aSel.size*days)+"칸";
-  $("a-tags").innerHTML = aSel.size
-    ? [...aSel].map(n=>'<button type="button" class="tag" data-n="'+esc(n)+'" aria-label="'+esc(n)+' 빼기">'+esc(n)+(noCert.has(n)?'<small>미이수</small>':'')+'<span class="x" aria-hidden="true">×</span></button>').join("")
-    : '<span class="hint">아직 고른 사람이 없어요</span>';
-}
-$("a-ev").addEventListener("change", ()=>{
-  const e = DATA.events.find(x=>x.name===$("a-ev").value);
-  if(e){ $("a-from").value = e.start; $("a-to").value = e.end; }
-  admCount();
-});
-["a-from","a-to"].forEach(id=>$(id).addEventListener("change", ()=>{
-  if($("a-to").value < $("a-from").value) $("a-to").value = $("a-from").value; admCount(); }));
-// 사람 검색해서 추가: 글자/초성 입력 → 목록에서 누르거나 Enter
-const aq = $("a-q"), apl = $("a-plist");
-let aMatches = [];
-function aOpen(){
-  const q = aq.value.trim();
-  if(!q){ aClose(); return; }   // 글자를 적을 때만 목록을 띄워서 아래 버튼을 가리지 않게
-  const pos = n => { let i=n.toLowerCase().indexOf(q.toLowerCase()); if(i<0&&isCho(q)) i=cho(n).indexOf(q); return i; };
-  aMatches = DATA.members.map(m=>m.name).filter(n=>!aSel.has(n) && matchName(n,q)).sort((a,b)=>q?pos(a)-pos(b):0);
-  apl.innerHTML = aMatches.map((n,i)=>'<li data-n="'+esc(n)+'" role="option"'+(i===0?' class="act"':'')+'>'+hl(n,q)+(noCert.has(n)?'<small>미이수</small>':'')+'</li>').join("")
-    || '<li class="none">'+(q?'"'+esc(q)+'" 이름이 없어요':'모두 골랐어요')+'</li>';
-  apl.hidden = false; aq.setAttribute("aria-expanded","true");
-}
-function aClose(){ apl.hidden = true; aq.setAttribute("aria-expanded","false"); }
-function aPick(n){
-  if(!n) return;
-  aSel.add(n); aq.value = ""; admPeopleChips(); aOpen(); aq.focus();
-}
-aq.addEventListener("focus", aOpen);
-aq.addEventListener("input", aOpen);
-aq.addEventListener("keydown", e=>{
-  if(e.isComposing) return;
-  const items=[...apl.querySelectorAll("li[data-n]")];
-  const cur = items.findIndex(li=>li.classList.contains("act"));
-  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); if(!items.length) return;
-    const nx = (cur + (e.key==="ArrowDown"?1:-1) + items.length) % items.length;
-    items.forEach((li,i)=>li.classList.toggle("act",i===nx)); items[nx].scrollIntoView({block:"nearest"}); }
-  else if(e.key==="Enter"){ e.preventDefault(); if(aq.value.trim() && cur>=0) aPick(items[cur].dataset.n); }
-  else if(e.key==="Backspace" && !aq.value && aSel.size){ aSel.delete([...aSel].pop()); admPeopleChips(); aOpen(); }
-  else if(e.key==="Escape"){ aClose(); aq.blur(); }
-});
-apl.addEventListener("mousedown", e=>{ const li=e.target.closest("li[data-n]"); if(!li) return; e.preventDefault(); aPick(li.dataset.n); });
-aq.addEventListener("blur", ()=>setTimeout(()=>{ if(document.activeElement!==aq) aClose(); },150));
-$("a-tags").addEventListener("click", e=>{ const t=e.target.closest(".tag"); if(!t) return; aSel.delete(t.dataset.n); admPeopleChips(); });
-$("a-people").addEventListener("click", e=>{
-  const b = e.target.closest(".pchip"); if(!b) return;
-  const n = b.dataset.n; aSel.has(n) ? aSel.delete(n) : aSel.add(n);
-  b.classList.toggle("on"); b.setAttribute("aria-pressed", aSel.has(n)); admCount();
-});
-$("a-none").addEventListener("click", ()=>{ aSel.clear(); admPeopleChips(); });
-document.querySelectorAll('input[name="a-shift"]').forEach(r=>r.addEventListener("change", ()=>{
-  $("adm-assign").classList.toggle("night", document.querySelector('input[name="a-shift"]:checked').value==="1"); updOnlyN(); }));
-function updOnlyN(){
-  const nn = nightsOf($("a-ev").value), ks = Object.keys(nn).sort();
-  $("a-onlyn-wrap").style.display = ks.length ? "" : "none";
-  $("a-onlyn-txt").textContent = "이 행사의 야간 날짜에만 넣기 ("+ks.map(k=>Number(k.slice(5,7))+"/"+Number(k.slice(8,10))).join(", ")+")";
-}
-$("a-ev").addEventListener("change", updOnlyN);
-function admSubmit(remove, overwrite){
-  const ev = $("a-ev").value;
-  const shift = document.querySelector('input[name="a-shift"]:checked').value === "1" ? 1 : 0;
-  let dates = datesBetween($("a-from").value, $("a-to").value);
-  const nn = nightsOf(ev);
-  if(shift && Object.keys(nn).length && $("a-onlyn").checked) dates = dates.filter(d=>d in nn);
-  if(!ev) return toast("행사를 골라 주세요.", true);
-  if(!dates.length) return toast("날짜를 확인해 주세요.", true);
-  if(!aSel.size) return toast("사람을 한 명 이상 골라 주세요.", true);
-  if(remove && !confirm(ev+"\n"+[...aSel].join(", ")+"\n"+dates.length+"일의 "+(shift?"야간":"주간")+" 배정을 지울까요?")) return;
-  busy(true);
-  run().withSuccessHandler(r=>{
-    busy(false);
-    if(!r.ok && r.conflicts){
-      const list = r.conflicts.slice(0,12).map(c=>"· "+c.date.slice(5)+" "+c.name+" → 이미 「"+c.current+"」").join("\n");
-      if(confirm("이미 다른 행사가 들어간 칸이 "+r.conflicts.length+"개 있어요.\n"+list+(r.conflicts.length>12?"\n…":"")+"\n\n이 칸들도 「"+ev+"」로 바꿀까요?")) admSubmit(false, true);
-      return;
-    }
-    admApply(r.data);
-    toast((remove?"지운 칸 ":"넣은 칸 ")+r.changed+"개"+(!remove&&shift&&$("a-hours").value?" · 야간 "+$("a-hours").value+"시간제":"")+(r.missing&&r.missing.length?" · 팀원 명단에 없는 이름 "+r.missing.length+"명은 건너뜀":""));
-  }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates, names:[...aSel], shift, event: remove?"":ev, onlyEvent: remove?ev:"", overwrite:!!overwrite,
-      nightHours: (!remove && shift) ? $("a-hours").value : ""});
-}
-$("a-add").addEventListener("click", ()=>admSubmit(false,false));
-$("a-del").addEventListener("click", ()=>admSubmit(true,false));
 
-// 일정 화면의 날짜 패널: 카드를 누르면 그 행사 관리로 이동 (수정은 행사 관리 · 배정 입력에서만)
+// 일정 화면의 날짜 패널: 카드를 누르면 그 행사 관리로 이동 (수정은 행사 관리에서)
 $("daypanel").addEventListener("click", e=>{
   if(e.target.closest("a")) return;   // 연락처 전화 걸기는 그대로
   const jp = e.target.closest("[data-jump]");
-  if(jp && ADM.token) jumpToEvent(jp.dataset.jump, selected);
+  if(jp && ADM.admin) jumpToEvent(jp.dataset.jump, selected);
 });
 // 필요 인원: 그 날짜 값(필요인원 탭) → 없으면 행사 기본(M·N)
 function needFor(date, name){
@@ -965,7 +796,7 @@ function needLine(date, it){
   return '<span class="needl">'+part("주간", nd, it.day.length)+part("야간", nn, it.night.length)+'</span>';
 }
 function dayShort(date, items){
-  if(!ADM.token) return false;
+  if(!ADM.admin) return false;
   return items.some(it=>{ const [nd,nn] = needFor(date, it.ev.name); return (nd!=null && it.day.length<nd) || (nn!=null && it.night.length<nn); });
 }
 function jumpToEvent(name, date){
@@ -1060,7 +891,7 @@ $("e-form").addEventListener("submit", ev=>{
   const putPeople = (i, data, overwrite) => {
     if(i>=groups.length) return finish(data, "「"+name+"」 행사를 추가했어요."+(people.length?" (인원 "+people.length+"명)":"")+(f.nights.length?" (야간 "+f.nights.length+"일)":""));
     const g = groups[i];
-    run().withSuccessHandler(r=>{
+    api.adminSetAssign({dates:days, names:g.names, shift:g.shift, event:name, onlyEvent:"", overwrite:!!overwrite}).then(r=>{
       if(!r.ok && r.conflicts){
         const list = r.conflicts.slice(0,8).map(c=>"· "+c.date.slice(5)+" "+c.name+" → 이미 「"+c.current+"」").join("\n");
         if(confirm("이미 다른 행사에 배정된 칸이 "+r.conflicts.length+"개 있어요.\n"+list+"\n\n「"+name+"」(으)로 바꿀까요? (취소하면 그 칸만 빼고 넣어요)")) return putPeople(i, data, true);
@@ -1070,15 +901,14 @@ $("e-form").addEventListener("submit", ev=>{
         const byName = {}; free.forEach(([d,n])=>(byName[n]=byName[n]||[]).push(d));
         const names = Object.keys(byName);
         const step = (k, dd) => { if(k>=names.length) return putPeople(i+1, dd, false);
-          run().withSuccessHandler(rr=>step(k+1, rr.data||dd)).withFailureHandler(admFail)
-            .adminSetAssign(ADM.token, {dates:byName[names[k]], names:[names[k]], shift:g.shift, event:name, onlyEvent:"", overwrite:false}); };
+          api.adminSetAssign({dates:byName[names[k]], names:[names[k]], shift:g.shift, event:name, onlyEvent:"", overwrite:false}).then(rr=>step(k+1, rr.data||dd), admFail); };
         return step(0, data);
       }
       putPeople(i+1, r.data||data, false);
-    }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates:days, names:g.names, shift:g.shift, event:name, onlyEvent:"", overwrite:!!overwrite});
+    }, admFail);
   };
   busy(true);
-  run().withSuccessHandler(r=>putPeople(0, r.data, false)).withFailureHandler(admFail).adminAddEvent(ADM.token, f);
+  api.adminAddEvent(f).then(r=>putPeople(0, r.data, false), admFail);
 });
 $("e-form").elements.start.addEventListener("change", e=>{ const end=$("e-form").elements.end; if(!end.value || end.value<e.target.value) end.value=e.target.value; });
 $("e-list").addEventListener("change", e=>{ const c=e.target.closest("input[data-d]"); if(!c) return;
@@ -1127,8 +957,7 @@ $("e-list").addEventListener("click", e=>{
     box.querySelectorAll("[data-f]").forEach(x=>f[x.dataset.f]=x.value);
     if(f.end < f.start) return toast("종료일이 시작일보다 빨라요.", true);
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+f.name+"」 저장했어요."+(r.renamed?" (배정 "+r.renamed+"칸 이름도 바꿈)":"")); })
-      .withFailureHandler(admFail).adminUpdateEvent(ADM.token, old, f);
+    api.adminUpdateEvent(old, f).then(r=>{ busy(false); admApply(r.data); toast("「"+f.name+"」 저장했어요."+(r.renamed?" (배정 "+r.renamed+"칸 이름도 바꿈)":"")); }, admFail);
     return;
   }
   const nd = e.target.closest("[data-needit]");
@@ -1150,8 +979,7 @@ $("e-list").addEventListener("click", e=>{
     const box = nds.closest(".nedit"), name = box.dataset.nbox;
     const rows = [...box.querySelectorAll("[data-nd]")].map(x=>({date:x.dataset.nd, day:x.value, night: box.querySelector('[data-nn="'+x.dataset.nd+'"]').value}));
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 날짜별 인원을 저장했어요."); })
-      .withFailureHandler(admFail).adminSetEventNeeds(ADM.token, name, rows);
+    api.adminSetEventNeeds(name, rows).then(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 날짜별 인원을 저장했어요."); }, admFail);
     return;
   }
   const ne = e.target.closest("[data-nedit]");
@@ -1168,19 +996,18 @@ $("e-list").addEventListener("click", e=>{
   if(sv){
     const box = sv.closest(".nedit"), name = box.dataset.nbox, nights = readNights(box);
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 야간 "+nights.length+"일 저장했어요."); })
-      .withFailureHandler(admFail).adminSetEventNights(ADM.token, name, nights);
+    api.adminSetEventNights(name, nights).then(r=>{ busy(false); admApply(r.data); toast("「"+name+"」 야간 "+nights.length+"일 저장했어요."); }, admFail);
     return;
   }
   const b = e.target.closest("[data-del]"); if(!b) return;
   const name = b.dataset.del;
   if(!confirm("「"+name+"」 행사를 지울까요?\n(이미 지난 근무 기록이 있는 행사는 급여 기록 보호를 위해 지울 수 없어요)")) return;
-  const go = clear => run().withSuccessHandler(r=>{
+  const go = clear => api.adminDeleteEvent(name, clear).then(r=>{
       if(!r.ok && r.assigned){ busy(false);
         if(confirm("이 행사에 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 모두 지우고 행사를 삭제할까요?")) { busy(true); go(true); }
         return; }
       busy(false); admApply(r.data); toast("지웠어요."+(r.cleared?" (배정 "+r.cleared+"칸도 함께)":""));
-    }).withFailureHandler(admFail).adminDeleteEvent(ADM.token, name, clear);
+    }, admFail);
   busy(true); go(false);
 });
 $("e-month").addEventListener("change", ()=>{ const v=$("e-month").value; if(!/^\d{4}-\d{2}$/.test(v)) return;
@@ -1219,7 +1046,7 @@ function renderAssignBox(box, name){
 }
 function assignOne(name, dates, person, shift, remove, overwrite){
   busy(true);
-  run().withSuccessHandler(r=>{
+  api.adminSetAssign({dates, names:[person], shift, event: remove?"":name, onlyEvent: remove?name:"", overwrite:!!overwrite}).then(r=>{
     busy(false);
     if(!r.ok && r.conflicts){
       const list = r.conflicts.slice(0,8).map(c=>"· "+c.date.slice(5)+" → 이미 「"+c.current+"」").join("\n");
@@ -1228,7 +1055,7 @@ function assignOne(name, dates, person, shift, remove, overwrite){
     }
     admApply(r.data);
     toast(remove ? person+" 님을 뺐어요." : person+" 님을 넣었어요"+(dates.length>1?" ("+r.changed+"일)":"")+".");
-  }).withFailureHandler(admFail).adminSetAssign(ADM.token, {dates, names:[person], shift, event: remove?"":name, onlyEvent: remove?name:"", overwrite:!!overwrite});
+  }, admFail);
 }
 function addFromInput(inp){
   const v = inp.value.trim(); if(!v) return;
@@ -1291,17 +1118,15 @@ $("m-form").addEventListener("submit", ev=>{
   ev.preventDefault();
   const f = Object.fromEntries(new FormData($("m-form")).entries());
   busy(true);
-  run().withSuccessHandler(r=>{ busy(false); $("m-form").reset(); admApply(r.data);
+  api.adminAddMember(f).then(r=>{ busy(false); $("m-form").reset(); admApply(r.data);
       const mb = r.data.members.find(x=>x.name===f.name.trim())||{};
-      toast(f.name+" 님 추가 · 전시 "+(mb.rateExh||0).toLocaleString("ko-KR")+"원 / 외부 "+(mb.rateOut||0).toLocaleString("ko-KR")+"원 / 시급 "+(mb.rateHour||0).toLocaleString("ko-KR")+"원"); $("m-form").elements.name.focus(); })
-    .withFailureHandler(admFail).adminAddMember(ADM.token, f);
+      toast(f.name+" 님 추가 · 전시 "+(mb.rateExh||0).toLocaleString("ko-KR")+"원 / 외부 "+(mb.rateOut||0).toLocaleString("ko-KR")+"원 / 시급 "+(mb.rateHour||0).toLocaleString("ko-KR")+"원"); $("m-form").elements.name.focus(); }, admFail);
 });
 $("m-list").addEventListener("change", e=>{
   const sel = e.target.closest("[data-cert]"); if(!sel) return;
   const n = sel.closest(".mrow").dataset.n;
   busy(true);
-  run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 이수증: "+(sel.value||"모름")); })
-    .withFailureHandler(admFail).adminSetCert(ADM.token, n, sel.value);
+  api.adminSetCert(n, sel.value).then(r=>{ busy(false); admApply(r.data); toast(n+" 이수증: "+(sel.value||"모름")); }, admFail);
 });
 $("m-list").addEventListener("click", e=>{
   const row = e.target.closest(".mrow"); if(!row) return;
@@ -1312,8 +1137,7 @@ $("m-list").addEventListener("click", e=>{
     const ou = prompt(n+" 일당(외부) — 숫자만, 비우면 빈칸", mb.rateOut ?? ""); if(ou===null) return;
     const hr = prompt(n+" 시급(야간 시간제) — 숫자만, 비우면 빈칸", mb.rateHour ?? ""); if(hr===null) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 일당을 저장했어요."); })
-      .withFailureHandler(admFail).adminSetRates(ADM.token, n, ou, ex, hr);
+    api.adminSetRates(n, ou, ex, hr).then(r=>{ busy(false); admApply(r.data); toast(n+" 일당을 저장했어요."); }, admFail);
     return;
   }
   const ad = e.target.closest("[data-admin]");
@@ -1322,31 +1146,28 @@ $("m-list").addEventListener("click", e=>{
     if(on && !confirm(n+" 님을 간부(관리자)로 지정할까요?\n모든 일정·급여·팀원 정보를 보고 고칠 수 있게 돼요.")) return;
     if(!on && !confirm(n+" 님의 간부(관리자) 권한을 해제할까요?"+(mb.isMe?"\n본인 권한이라 해제하면 바로 관리자 화면이 닫혀요.":""))) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); if(!on && mb.isMe) return location.reload(); admApply(r.data); toast(n+(on?" 님을 간부로 지정했어요.":" 님 간부 권한을 해제했어요.")); })
-      .withFailureHandler(admFail).adminSetAdmin(ADM.token, n, on);
+    api.adminSetAdmin(n, on).then(r=>{ busy(false); if(!on && mb.isMe) return location.reload(); admApply(r.data); toast(n+(on?" 님을 간부로 지정했어요.":" 님 간부 권한을 해제했어요.")); }, admFail);
     return;
   }
   if(e.target.closest("[data-unlink]")){
     if(!confirm(n+" 님의 카카오 연결을 해제할까요?\n해제한 카카오 계정은 위 '연결 요청'으로 돌아가서, 맞는 사람으로 다시 연결할 수 있어요.")) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 님 연결을 해제했어요. 위 연결 요청에서 맞는 사람으로 다시 연결하세요."); })
-      .withFailureHandler(admFail).adminUnlinkMember(ADM.token, n);
+    api.adminUnlinkMember(n).then(r=>{ busy(false); admApply(r.data); toast(n+" 님 연결을 해제했어요. 위 연결 요청에서 맞는 사람으로 다시 연결하세요."); }, admFail);
     return;
   }
   if(e.target.closest("[data-rename]")){
     const nn = prompt("새 이름", n); if(!nn || nn.trim()===n) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); if(person===n) person=nn.trim(); admApply(r.data); toast(n+" → "+nn.trim()); })
-      .withFailureHandler(admFail).adminRenameMember(ADM.token, n, nn.trim());
+    api.adminRenameMember(n, nn.trim()).then(r=>{ busy(false); if(person===n) person=nn.trim(); admApply(r.data); toast(n+" → "+nn.trim()); }, admFail);
   }
   if(e.target.closest("[data-retire]")){
     if(!confirm(n+" 님을 퇴사 처리할까요?\n지난 근무 기록과 급여는 그대로 남고, 명단·배정 목록·로그인에서만 빠져요. 나중에 복귀시킬 수 있어요.")) return;
-    const go = ok => run().withSuccessHandler(r=>{
+    const go = ok => api.adminRetireMember(n, ok).then(r=>{
         if(!r.ok && r.future){ busy(false);
           if(confirm(n+" 님은 오늘 이후 배정이 "+r.future+"칸 남아 있어요.\n그 배정은 빼고 퇴사 처리할까요?")){ busy(true); go(true); }
           return; }
-        busy(false); aSel.delete(n); admApply(r.data); toast(n+" 님을 퇴사 처리했어요."+(r.cleared?" (앞으로의 배정 "+r.cleared+"칸 뺌)":""));
-      }).withFailureHandler(admFail).adminRetireMember(ADM.token, n, ok);
+        busy(false); admApply(r.data); toast(n+" 님을 퇴사 처리했어요."+(r.cleared?" (앞으로의 배정 "+r.cleared+"칸 뺌)":""));
+      }, admFail);
     busy(true); go(false);
   }
 });
@@ -1355,19 +1176,17 @@ $("m-flist").addEventListener("click", e=>{
   const n = row.dataset.n;
   if(e.target.closest("[data-restore]")){
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 님을 복귀시켰어요. 카카오 연결은 다시 해 주세요."); })
-      .withFailureHandler(admFail).adminRestoreMember(ADM.token, n);
+    api.adminRestoreMember(n).then(r=>{ busy(false); admApply(r.data); toast(n+" 님을 복귀시켰어요. 카카오 연결은 다시 해 주세요."); }, admFail);
   }
   if(e.target.closest("[data-hdel]")){
     if(!confirm(n+" 님을 완전히 삭제할까요? (근무 기록이 없어서 지울 수 있어요)")) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(n+" 님을 삭제했어요."); })
-      .withFailureHandler(admFail).adminDeleteMember(ADM.token, n);
+    api.adminDeleteMember(n).then(r=>{ busy(false); admApply(r.data); toast(n+" 님을 삭제했어요."); }, admFail);
   }
 });
 
 function admRenderPanels(){
-  if(!ADM.token) return;
+  if(!ADM.admin) return;
   admRenderMembers();
   // 행사 목록
   const y=view.getFullYear(), m=view.getMonth();
@@ -1466,14 +1285,12 @@ $("m-reqs").addEventListener("click", e=>{
     const name = row.querySelector("[data-lsel]").value;
     if(!name) return toast("연결할 팀원을 골라 주세요.", true);
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast(name+" 님과 연결했어요."); })
-      .withFailureHandler(admFail).adminLinkMember(ADM.token, uid, name);
+    api.adminLinkMember(uid, name).then(r=>{ busy(false); admApply(r.data); toast(name+" 님과 연결했어요."); }, admFail);
   }
   if(e.target.closest("[data-ldis]")){
     if(!confirm("이 연결 요청을 거절(삭제)할까요?")) return;
     busy(true);
-    run().withSuccessHandler(r=>{ busy(false); admApply(r.data); toast("요청을 지웠어요."); })
-      .withFailureHandler(admFail).adminDismissRequest(ADM.token, uid);
+    api.adminDismissRequest(uid).then(r=>{ busy(false); admApply(r.data); toast("요청을 지웠어요."); }, admFail);
   }
 });
 async function doLogout(){ try{ await Backend.logout(); }catch(e){} try{ localStorage.removeItem("teamCalPerson"); }catch(e){} location.reload(); }
@@ -1508,7 +1325,7 @@ async function boot(){
     const d = await Backend.getData();
     document.body.classList.add("ready");
     if(st.state==="admin"){
-      ADM.token = "sb"; document.body.classList.add("admin");
+      ADM.admin = true; document.body.classList.add("admin");
       try { person = localStorage.getItem("teamCalPerson") || ""; } catch(e){}
       admApply(d); admTab("cal"); setPerson(person, true);
     } else {

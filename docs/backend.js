@@ -1,9 +1,9 @@
 /*
  * 팀 스케줄 — 수퍼베이스 연결부
  *
- * 화면 코드(index.html)는 예전 구글 Apps Script 버전과 거의 같습니다.
- * 예전 화면이 부르던 google.script.run.함수이름(...) 을 여기서 같은 이름의
- * 수퍼베이스 함수로 바꿔 줍니다. 권한(관리자/본인만)은 DB의 RLS가 지킵니다.
+ * 화면(index.html)은 api.함수이름(...) 을 부르고, 결과는 Promise로 받습니다.
+ * 관리자 함수는 { ok, data(새 전체 데이터), ... } 를 돌려줍니다.
+ * 권한(관리자 / 본인만)은 DB의 RLS가 다시 확인하므로 화면을 고쳐도 우회할 수 없습니다.
  */
 (function () {
   const SUPABASE_URL = 'https://wnqssbtqbaisgtmpitve.supabase.co';
@@ -167,7 +167,7 @@
   const n0 = v => num(v);
 
   /* ---------------- 관리자: 배정 ---------------- */
-  async function adminSetAssign(_t, p) {
+  async function adminSetAssign(p) {
     const shift = SHIFT[Number(p.shift) ? 1 : 0];
     const dates = (p.dates || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
     const names = (p.names || []).map(n => String(n).trim()).filter(Boolean);
@@ -220,7 +220,7 @@
       memo: (f.memo || '').trim() || null, need_day: n0(f.needDay), need_night: n0(f.needNight)
     };
   }
-  async function adminAddEvent(_t, f) {
+  async function adminAddEvent(f) {
     const row = eventFields(f);
     if (!row.name) throw new Error('행사명을 적어 주세요.');
     checkDates(row.start_date, row.end_date);
@@ -229,7 +229,7 @@
     await replaceNights(data.id, f.nights || []);
     return done();
   }
-  async function adminUpdateEvent(_t, oldName, f) {
+  async function adminUpdateEvent(oldName, f) {
     const ev = await eventRow(oldName);
     const row = eventFields(f);
     if (!row.name) throw new Error('행사명을 적어 주세요.');
@@ -243,7 +243,7 @@
     }
     return done({ renamed });
   }
-  async function adminDeleteEvent(_t, name, clear) {
+  async function adminDeleteEvent(name, clear) {
     const ev = await eventRow(name);
     const { count: past, error: pe } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id).lt('work_date', today());
     fail(pe);
@@ -255,7 +255,7 @@
     fail(error);
     return done({ cleared: count || 0 });
   }
-  async function adminSetEventNeeds(_t, name, rows) {
+  async function adminSetEventNeeds(name, rows) {
     const ev = await eventRow(name);
     const { data: old } = await sb.from('need_overrides').select('work_date,memo').eq('event_id', ev.id);
     const memo = new Map((old || []).map(r => [r.work_date, r.memo]));
@@ -274,12 +274,12 @@
     const add = (nights || []).filter(n => n && n.date).map(n => ({ work_date: n.date, event_id: eventId, hours: num(n.hours), memo: memo.get(n.date) || null }));
     if (add.length) { const { error } = await sb.from('night_plans').insert(add); fail(error); }
   }
-  async function adminSetEventNights(_t, name, nights) {
+  async function adminSetEventNights(name, nights) {
     const ev = await eventRow(name);
     await replaceNights(ev.id, nights);
     return done();
   }
-  async function adminSetNightHours(_t, date, name, hours) {
+  async function adminSetNightHours(date, name, hours) {
     const ev = await eventRow(name);
     if (hours === null) { const { error } = await sb.from('night_plans').delete().eq('event_id', ev.id).eq('work_date', date); fail(error); }
     else { const { error } = await sb.from('night_plans').upsert({ work_date: date, event_id: ev.id, hours: num(hours) }, { onConflict: 'work_date,event_id' }); fail(error); }
@@ -287,7 +287,7 @@
   }
 
   /* ---------------- 관리자: 팀원 ---------------- */
-  async function adminAddMember(_t, f) {
+  async function adminAddMember(f) {
     const name = String(f.name || '').trim();
     if (!name) throw new Error('이름을 적어 주세요.');
     const { data: last } = await sb.from('members').select('sort_order').order('sort_order', { ascending: false }).limit(1);
@@ -302,17 +302,17 @@
     fail(error, '같은 이름이 이미 있어요: ' + name + ' (동명이인이면 이름 뒤에 숫자를 붙여 주세요)');
     return done();
   }
-  async function adminSetCert(_t, name, v) {
+  async function adminSetCert(name, v) {
     const { error } = await sb.from('members').update({ cert: ['있음', '없음'].includes(v) ? v : null }).eq('id', await memberId(name));
     fail(error);
     return done();
   }
-  async function adminSetRates(_t, name, out, exh, hour) {
+  async function adminSetRates(name, out, exh, hour) {
     const { error } = await sb.from('members').update({ rate_out: num(out), rate_exh: num(exh), rate_hour: num(hour) }).eq('id', await memberId(name));
     fail(error);
     return done();
   }
-  async function adminRenameMember(_t, oldName, newName) {
+  async function adminRenameMember(oldName, newName) {
     newName = String(newName || '').trim();
     if (!newName) throw new Error('새 이름을 적어 주세요.');
     const id = await memberId(oldName);
@@ -322,7 +322,7 @@
     return done({ renamed: count || 0 });
   }
   /* 완전 삭제는 근무 기록이 하나도 없을 때만 (잘못 만든 팀원 정리용) */
-  async function adminDeleteMember(_t, name) {
+  async function adminDeleteMember(name) {
     const id = await memberId(name);
     const { count, error: ce } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('member_id', id);
     fail(ce);
@@ -332,7 +332,7 @@
     return done();
   }
   /* 퇴사 처리: 지난 기록·급여는 그대로, 오늘 이후 배정만 빼고 명단·로그인에서 제외 */
-  async function adminRetireMember(_t, name, confirmFuture) {
+  async function adminRetireMember(name, confirmFuture) {
     const { data: m, error: me } = await sb.from('members').select('id,user_id').eq('name', name).maybeSingle();
     fail(me);
     if (!m) throw new Error('팀원을 찾지 못했어요: ' + name);
@@ -348,13 +348,13 @@
     fail(error);
     return done({ cleared: fut.length });
   }
-  async function adminRestoreMember(_t, name) {
+  async function adminRestoreMember(name) {
     const { error } = await sb.from('members').update({ active: true, retired_at: null }).eq('id', await memberId(name));
     fail(error);
     return done();
   }
   /* 카카오 계정 ↔ 팀원 연결 */
-  async function adminLinkMember(_t, userId, name) {
+  async function adminLinkMember(userId, name) {
     const id = await memberId(name);
     const { data: other } = await sb.from('members').select('name').eq('user_id', userId).maybeSingle();
     if (other && other.name !== name) throw new Error('이 카카오 계정은 이미 ' + other.name + ' 님에게 연결돼 있어요.');
@@ -364,7 +364,7 @@
     return done();
   }
   /* 연결 해제: 그 카카오 계정은 다시 '연결 요청'으로 돌아가서 바로 다른 사람과 다시 연결할 수 있음 */
-  async function adminUnlinkMember(_t, name) {
+  async function adminUnlinkMember(name) {
     const { data: m, error: me } = await sb.from('members').select('id,user_id').eq('name', name).maybeSingle();
     fail(me);
     if (!m) throw new Error('팀원을 찾지 못했어요: ' + name);
@@ -376,14 +376,14 @@
     }
     return done();
   }
-  async function adminDismissRequest(_t, userId) {
+  async function adminDismissRequest(userId) {
     const { error } = await sb.from('link_requests').delete().eq('user_id', userId);
     fail(error);
     return done();
   }
 
   /* 간부(관리자) 지정·해제 — 카카오 연결된 팀원만 */
-  async function adminSetAdmin(_t, name, on) {
+  async function adminSetAdmin(name, on) {
     const { data: m, error: me } = await sb.from('members').select('user_id').eq('name', name).maybeSingle();
     fail(me);
     if (!m || !m.user_id) throw new Error(name + ' 님은 아직 카카오 연결이 안 돼 있어요. 먼저 연결해 주세요.');
@@ -393,31 +393,12 @@
   }
 
   const API = {
-    getData, refreshData: getData, adminGetData: () => buildAdmin(), adminLogout: logout,
+    getData,
     adminSetAssign, adminAddEvent, adminUpdateEvent, adminDeleteEvent, adminSetEventNeeds, adminSetEventNights, adminSetNightHours,
     adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember, adminRetireMember, adminRestoreMember,
     adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin
   };
 
-  /* 예전 화면 코드가 쓰던 google.script.run 흉내 */
-  function makeRun() {
-    const st = { ok: null, bad: null };
-    const px = new Proxy({}, {
-      get(_, k) {
-        if (k === 'withSuccessHandler') return h => { st.ok = h; return px; };
-        if (k === 'withFailureHandler') return h => { st.bad = h; return px; };
-        if (k === 'withUserObject') return () => px;
-        const fn = API[k];
-        return (...args) => {
-          Promise.resolve().then(() => {
-            if (!fn) throw new Error('알 수 없는 기능: ' + String(k));
-            return fn(...args);
-          }).then(r => st.ok && st.ok(r), e => { console.error(e); st.bad && st.bad(e instanceof Error ? e : new Error(String(e))); });
-        };
-      }
-    });
-    return px;
-  }
-  window.google = { script: { get run() { return makeRun(); }, history: { replace() {} }, url: { getLocation(cb) { cb({ parameter: {} }); } } } };
+  window.api = API;
   window.Backend = { sb, whoAmI, login, logout, requestLink, getData, state: S };
 })();

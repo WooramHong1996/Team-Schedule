@@ -132,7 +132,7 @@ function renderDay(){
     '<span class="k">함께 주간</span><span class="v">'+(o.day.length?who(o.day):"-")+'</span>'+
     '<span class="k">함께 야간</span><span class="v">'+(o.night.length?who(o.night):"-")+'</span>'+
     (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+
-    (!ADM.admin ? '<span class="meta more">'+(it.ev.notice?'📌 공지 있음 · ':'')+'자세히 보기 ›</span>' : '')+'</div>'; }).join("");
+    (!ADM.admin ? '<span class="meta more">'+(it.ev.notice?icon('pin',13)+' 공지 있음 · ':'')+'자세히 보기 ›</span>' : '')+'</div>'; }).join("");
   else html += items.map(it=>
     '<div class="item '+it.ev.cls+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
     '<span class="k">주간</span><span class="v">'+(it.day.length?who(it.day):"-")+'</span>'+

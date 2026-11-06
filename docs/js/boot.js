@@ -7,7 +7,7 @@ async function boot(){
   try { st = await Backend.whoAmI(); }
   catch(e){ return gate('<p>연결하지 못했어요.<br>'+esc(e.message||e)+'</p><button class="btn" onclick="location.reload()">다시 시도</button>'); }
   if(st.state==="out"){
-    gate('<p>카카오 계정으로 로그인하면<br>내 근무 일정을 볼 수 있어요.</p><button type="button" class="kakao" id="g-login"><span aria-hidden="true">💬</span> 카카오로 로그인</button>');
+    gate('<p>카카오 계정으로 로그인하면<br>내 근무 일정을 볼 수 있어요.</p><button type="button" class="kakao" id="g-login">'+icon('chat',20)+' 카카오로 로그인</button>');
     $("g-login").onclick = ()=>Backend.login().catch(e=>toast(e.message,true));
     return;
   }

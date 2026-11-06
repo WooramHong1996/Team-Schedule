@@ -74,7 +74,8 @@ body.admin:not([data-tab="cal"]) .calview{display:none !important}
 .needl{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.8rem;align-items:center}
 .needl b{font-family:var(--f-num)}
 .needl .bad{color:var(--warn);font-weight:700}
-.needl .ok{color:#1f7a3a;font-weight:700}
+.needl .ok{color:var(--ok-ink);font-weight:700}
+.needl .over{color:var(--over-ink);font-weight:700}
 .short-dot{display:none}
 body.admin .short-dot{display:block;position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
 .day{position:relative}
@@ -142,7 +143,7 @@ body.admin .item .t.jumpt{cursor:pointer;text-decoration:underline;text-underlin
 .mrow .mn{font-weight:700;min-width:5em}
 .mrow mark{background:none;color:var(--accent)}
 .mrow .ma{font-size:.8rem;color:var(--muted);flex:1;min-width:6em}
-.mrow select{font:inherit;font-size:.85rem;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);padding:0 6px}
+.mrow select{font:inherit;font-size:16px;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);padding:0 6px}
 .lnk{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
 .panel h2 small#m-cnt{font-family:var(--f-num)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
@@ -180,9 +181,9 @@ body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
 .erow.eopen:hover,.erow.eopen:focus-visible{background:color-mix(in srgb,var(--accent) 8%,transparent);outline:none}
 .erow .chev{color:var(--muted);font-size:1.2rem;flex-shrink:0;padding-left:4px}
 .ebadges{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
-.ebadge{font-size:.72rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.ebadge{font-size:.75rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
 .ebadge.bad{border-color:#c62828;color:#c62828;font-weight:700}
-.ebadge.ok{border-color:#2e7d32;color:#2e7d32}
+.ebadge.ok{border-color:var(--ok-ink);color:var(--ok-ink)}
 .edtop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .ednav{margin-left:auto;display:flex;gap:6px}
 .ednav-btn{font:inherit;font-size:.9rem;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer}
@@ -198,3 +199,10 @@ body.busy .btn,body.busy .danger{opacity:.5;pointer-events:none}
 .edbody h3{margin:8px 0 0;font-size:1rem}
 .edbody .dangerzone{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ad-day.flash{animation:flash 1.6s ease-out}
+
+@media (pointer:coarse){
+  .ad-chip{min-height:40px}
+  .nrow input[type=number],.ad-add input,.ad-all input{height:40px;min-height:40px}
+  .mrow select,#m-reqs select{height:40px}
+  .edtabs button{min-height:44px}
+}

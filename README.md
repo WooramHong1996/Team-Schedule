@@ -24,6 +24,7 @@ docs/                      웹 화면 (빌드 없이 그대로 배포)
 supabase/migrations/       DB 구조·권한·함수 (번호 순서대로 적용)
 sheet-apps-script/Code.gs  구글 시트를 웹 데이터의 읽기 전용 사본으로 15분마다 동기화
 tests/                     가짜 DB를 붙인 화면 테스트 (node tests/run.js docs)
+.claude/skills/ui-ux-pro-max/  UI/UX 점검 스킬 (nextlevelbuilder/ui-ux-pro-max-skill, MIT)
 ```
 
 스크립트는 `index.html` 아래쪽에 적힌 순서대로 읽힙니다(일반 `<script>`, 전역 공유).

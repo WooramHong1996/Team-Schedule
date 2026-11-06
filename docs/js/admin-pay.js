@@ -48,7 +48,7 @@ function renderPay(){
   const when = closed ? new Date(closed.closedAt) : null;
   $("p-close").className = "pclose"+(closed?" closed":"");
   $("p-close").innerHTML = closed
-    ? '<span class="st">🔒 <b>'+(m+1)+'월 마감됨</b> · '+(when.getMonth()+1)+'/'+when.getDate()+' '+String(when.getHours()).padStart(2,"0")+':'+String(when.getMinutes()).padStart(2,"0")+(closed.by?' '+esc(closed.by):'')+
+    ? '<span class="st">'+icon('lock',15)+' <b>'+(m+1)+'월 마감됨</b> · '+(when.getMonth()+1)+'/'+when.getDate()+' '+String(when.getHours()).padStart(2,"0")+':'+String(when.getMinutes()).padStart(2,"0")+(closed.by?' '+esc(closed.by):'')+
       '<br><small>마감할 때의 금액이 그대로 보여요. 이 달 배정은 잠겨 있어요.</small></span>'+
       '<button type="button" class="btn" data-xlsx>엑셀 내려받기</button><button type="button" class="btn sub" data-reopen>마감 취소</button>'
     : '<span class="st"><b>'+(m+1)+'월 마감 전</b><br><small>배정·일당이 바뀌면 금액도 바뀌어요. 정산이 끝나면 마감해 주세요.</small></span>'+

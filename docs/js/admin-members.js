@@ -21,7 +21,7 @@ function admRenderMembers(){
     return '<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+
       '<span class="ma">배정 '+(cnt[m.name]||0)+'칸 · 전시 '+wonS(m.rateExh)+' / 외부 '+wonS(m.rateOut)+' / 시급 '+wonS(m.rateHour)+'</span>'+
       (m.linked ? '<button type="button" class="lnk klink on" data-unlink title="카카오 연결 해제">카카오 연결됨 ×</button>'+
-        '<button type="button" class="lnk klink'+(m.isAdmin?' adm':'')+'" data-admin="'+(m.isAdmin?0:1)+'">'+(m.isAdmin?'간부(관리자) ✓':'간부 지정')+'</button>' : '<span class="klink">카카오 미연결</span>')+
+        '<button type="button" class="lnk klink'+(m.isAdmin?' adm':'')+'" data-admin="'+(m.isAdmin?0:1)+'">'+(m.isAdmin?'간부(관리자) '+icon('check',13):'간부 지정')+'</button>' : '<span class="klink">카카오 미연결</span>')+
       '<label><span class="sr">이수증 </span><select data-cert aria-label="'+esc(m.name)+' 이수증">'+
         [["","이수증 모름"],["있음","이수증 있음"],["없음","이수증 없음"]].map(([v,t])=>'<option value="'+v+'"'+(v===c?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
       '<button type="button" class="lnk" data-rate>일당</button>'+

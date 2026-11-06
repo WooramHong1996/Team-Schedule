@@ -24,8 +24,8 @@ function showEventInfo(name){
     '<div class="eihead"><i class="sw '+clsFor(ev.type)+'"></i><h2 id="ei-title">'+esc(ev.name)+'</h2></div>'+
     '<div class="eimeta">'+esc(ev.type||"")+(ev.type?' · ':'')+mm(ev.start)+(ev.end!==ev.start?' – '+mm(ev.end):'')+' ('+days+'일)</div>'+
     '<dl class="eidl">'+
-      (ev.place ? '<dt>장소</dt><dd>'+esc(ev.place)+' <a class="eimap" href="https://map.naver.com/p/search/'+encodeURIComponent(ev.place)+'" target="_blank" rel="noopener">지도</a></dd>' : '')+
-      (ev.manager || ev.contact ? '<dt>담당</dt><dd>'+esc(ev.manager||"")+(tel ? ' <a class="eitel" href="tel:'+esc(tel)+'">📞 '+esc(ev.contact)+'</a>' : (ev.contact?' '+esc(ev.contact):''))+'</dd>' : '')+
+      (ev.place ? '<dt>장소</dt><dd>'+esc(ev.place)+' <a class="eimap" href="https://map.naver.com/p/search/'+encodeURIComponent(ev.place)+'" target="_blank" rel="noopener">'+icon('map',14)+' 지도</a></dd>' : '')+
+      (ev.manager || ev.contact ? '<dt>담당</dt><dd>'+esc(ev.manager||"")+(tel ? ' <a class="eitel" href="tel:'+esc(tel)+'">'+icon('phone',14)+' '+esc(ev.contact)+'</a>' : (ev.contact?' '+esc(ev.contact):''))+'</dd>' : '')+
     '</dl>'+
     (ev.notice ? '<div class="einotice"><b>공지</b><p>'+esc(ev.notice)+'</p></div>' : '')+
     '<h3>내 근무 <small>'+myDates.length+'일</small></h3>'+

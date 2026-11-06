@@ -126,7 +126,7 @@ function renderEventDetail(){
   $("ed-head").innerHTML =
     '<h2><i class="sw '+clsFor(ev.type)+'"></i>'+esc(ev.name)+'</h2>'+
     '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mm(ev.start)+(ev.end!==ev.start?" – "+mm(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
-    (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a href="tel:'+esc(ev.contact)+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
+    (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a class="eitel" href="tel:'+esc(ev.contact)+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
     (ev.notice ? '<span class="memo"><b>팀원 공지</b> '+esc(ev.notice)+'</span>' : '')+
     (ev.memo ? '<span class="memo"><b>메모</b> '+esc(ev.memo)+'</span>' : '')+
     '<div class="ebadges"><span class="ebadge">배정 '+cnt+'칸</span>'+

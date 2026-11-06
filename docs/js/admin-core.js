@@ -35,7 +35,7 @@ function needLine(date, it){
   const [nd, nn] = needFor(date, it.ev.name);
   if(nd==null && nn==null) return '<span class="needl">필요 인원 미입력</span>';
   const part = (lab, need, got) => need==null ? '' : '<span>'+lab+' 필요 <b>'+need+'</b> · 배정 <b>'+got+'</b> '+
-    (got<need ? '<span class="bad">'+(need-got)+'명 부족</span>' : got>need ? '<span class="bad" style="color:#b26a00">'+(got-need)+'명 초과</span>' : '<span class="ok">OK</span>')+'</span>';
+    (got<need ? '<span class="bad">'+(need-got)+'명 부족</span>' : got>need ? '<span class="over">'+(got-need)+'명 초과</span>' : '<span class="ok">OK</span>')+'</span>';
   return '<span class="needl">'+part("주간", nd, it.day.length)+part("야간", nn, it.night.length)+'</span>';
 }
 function dayShort(date, items){
@@ -62,7 +62,7 @@ function admDayExtra(it){
     '<span class="k">야간</span><span class="v">'+names(it.night)+'</span>'+
     ((it.night.length || planned) ? '<span class="nh">'+(planned?'야간 예정':'야간')+' · '+(h?'<b>'+h+'시간</b> × 각자 시급':'일당')+(planned&&!it.night.length?' · <span class="miss">미배정</span>':'')+'</span>' : '')+
     (e.place?'<span class="k">장소</span><span class="v">'+esc(e.place)+'</span>':'')+
-    (e.manager||e.contact?'<span class="k">담당</span><span class="v">'+esc(e.manager||"")+(e.contact?' · <a href="tel:'+esc(e.contact.replace(/[^0-9+]/g,""))+'">'+esc(e.contact)+'</a>':'')+'</span>':'')+
+    (e.manager||e.contact?'<span class="k">담당</span><span class="v">'+esc(e.manager||"")+(e.contact?' · <a class="eitel" href="tel:'+esc(e.contact.replace(/[^0-9+]/g,""))+'">'+esc(e.contact)+'</a>':'')+'</span>':'')+
     (e.memo?'<span class="k">메모</span><span class="v memo">'+esc(e.memo)+'</span>':'')+'</div>';
 }
 

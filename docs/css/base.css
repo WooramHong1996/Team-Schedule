@@ -3,7 +3,7 @@
    Wide screens put names inside each day; phones show colored bars and a tap-to-open day sheet. */
 :root{
   --bg:#f5f6f9; --surface:#ffffff; --line:#dfe3eb; --fg:#1b2333; --muted:#677189;
-  --accent:#1f3864; --accent-ink:#ffffff; --today:#e8862a; --sun:#c43d3d; --sat:#2f5fb8; --warn:#b42828;
+  --accent:#1f3864; --accent-ink:#ffffff; --today:#c2410c; --today-ink:#ffffff; --ok-ink:#14532d; --over-ink:#7a3e00; --sun:#c43d3d; --sat:#2f5fb8; --warn:#b42828;
   --sky-bg:#d5e9fb; --sky-ink:#174a75; --orange-bg:#fde0bd; --orange-ink:#7a4210;
   --green-bg:#d4eecf; --green-ink:#24561d; --purple-bg:#e3d8f6; --purple-ink:#4c2f80;
   --yellow-bg:#fff1b0; --yellow-ink:#6b5300; --pink-bg:#fbd8ea; --pink-ink:#7d2453;
@@ -14,7 +14,7 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12161f; --surface:#1a202c; --line:#2c3445; --fg:#e7ebf3; --muted:#98a2b8;
-  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
+  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --today-ink:#1a1206; --ok-ink:#8fd19e; --over-ink:#ffc58a; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
   --sky-bg:#1d3c58; --sky-ink:#cfe6fb; --orange-bg:#553416; --orange-ink:#fde0bd;
   --green-bg:#1f4421; --green-ink:#d4eecf; --purple-bg:#3a2b5c; --purple-ink:#e3d8f6;
   --yellow-bg:#4d4111; --yellow-ink:#fff1b0; --pink-bg:#5a2440; --pink-ink:#fbd8ea;
@@ -22,7 +22,7 @@
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12161f; --surface:#1a202c; --line:#2c3445; --fg:#e7ebf3; --muted:#98a2b8;
-  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
+  --accent:#8fb0ea; --accent-ink:#0f1522; --today:#f0a052; --today-ink:#1a1206; --ok-ink:#8fd19e; --over-ink:#ffc58a; --sun:#f08080; --sat:#8fb0ff; --warn:#ff8a8a;
   --sky-bg:#1d3c58; --sky-ink:#cfe6fb; --orange-bg:#553416; --orange-ink:#fde0bd;
   --green-bg:#1f4421; --green-ink:#d4eecf; --purple-bg:#3a2b5c; --purple-ink:#e3d8f6;
   --yellow-bg:#4d4111; --yellow-ink:#fff1b0; --pink-bg:#5a2440; --pink-ink:#fbd8ea;
@@ -48,7 +48,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
-.legend .lgn{font-size:.72rem}
+.legend .lgn{font-size:.75rem}
 
 .cal{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
@@ -65,7 +65,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .num{font-family:var(--f-num);font-weight:600;font-size:.82rem;font-variant-numeric:tabular-nums;
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%}
 .day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
-.day.today .num{background:var(--today);color:#fff}
+.day.today .num{background:var(--today);color:var(--today-ink)}
 .day.warn .num{box-shadow:0 0 0 2px var(--warn)}
 
 .chips{display:grid;gap:3px;min-width:0}
@@ -144,14 +144,14 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
   .day{min-height:76px;padding:4px 3px;gap:3px;align-items:center}
   .chips{display:none}
   .bars{display:grid;gap:2px;width:100%;align-self:stretch}
-  .bar{height:14px;border-radius:4px;position:relative;min-width:0}
+  .bar{height:15px;border-radius:4px;position:relative;min-width:0}
   .bar{z-index:1}
   .bar:not(.cl){z-index:2}
   .bar.empty{background:none}
   /* 같은 행사가 다음 날로 이어지면 칸 경계를 1px 겹쳐 덮어서 경계선 없이 한 줄처럼 보이게 */
   .bar.cl{margin-left:-4px;border-top-left-radius:0;border-bottom-left-radius:0}
   .bar.cr{margin-right:-5px;border-top-right-radius:0;border-bottom-right-radius:0}
-  .bar em{position:absolute;left:3px;top:0;z-index:3;font-style:normal;font-size:9px;line-height:14px;font-weight:700;
+  .bar em{position:absolute;left:3px;top:0;z-index:3;font-style:normal;font-size:10px;line-height:15px;font-weight:700;
     white-space:nowrap;overflow:hidden;text-overflow:clip;width:calc(var(--run) * 100% + (var(--run) - 1) * 9px - 4px);pointer-events:none}
   .day.out .bar{opacity:.45}
   .more{font-size:.62rem;color:var(--muted);text-align:center;font-family:var(--f-num)}
@@ -189,3 +189,17 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .eis{display:flex;gap:8px;align-items:baseline;font-size:.9rem}
 .eiw{overflow-wrap:anywhere}
 .dbadge{font-size:.75rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);flex-shrink:0}
+
+/* ---------- UI UX Pro Max 점검 반영 ---------- */
+.ico{display:inline-block;vertical-align:-.15em;flex-shrink:0}
+.nav button{height:44px;min-width:44px}
+/* 손가락으로 쓰는 화면: 누르는 곳은 44px 이상 */
+@media (pointer:coarse){
+  .lnk,.ednav-btn,.eitel,.eimap{min-height:44px;display:inline-flex;align-items:center;gap:4px}
+  .brand .lnk.lo{min-height:44px}
+}
+/* 움직임 줄이기 설정을 켠 사람에게는 반짝임·부드러운 스크롤을 끔 */
+@media (prefers-reduced-motion:reduce){
+  .flash,.erow.flash,.ad-day.flash,.eirow{animation:none !important}
+  html{scroll-behavior:auto}
+}

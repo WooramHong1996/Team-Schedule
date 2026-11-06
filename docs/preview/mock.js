@@ -1,4 +1,4 @@
-// 테스트용 가짜 supabase-js (메모리 DB). window.__MOCK = {user, tables} 로 초기화
+// 가짜 supabase-js (메모리 DB). 테스트(tests/run.js)와 미리보기(preview.html)가 같이 씀. window.__MOCK = {user, tables} 로 초기화
 (function(){
   const M = window.__MOCK;
   let seq = 1000;

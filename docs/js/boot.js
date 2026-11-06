@@ -14,7 +14,7 @@ async function boot(){
   if(st.state==="pending"){
     const sent = st.request;
     gate((sent
-      ? '<p><b>연결 요청을 보냈어요.</b><br>관리자가 확인하면 바로 일정이 보여요.</p><p style="font-size:.9rem">요청한 이름: <b>'+esc(sent.claimed_name||"-")+'</b></p><button class="btn" onclick="location.reload()">다시 확인</button><button class="sub2" id="g-edit">이름을 잘못 적었어요 (다시 적기)</button>'
+      ? '<p><b>연결 요청을 보냈어요.</b><br>관리자가 확인하면 바로 일정이 보여요.</p><p class="gnote">요청한 이름: <b>'+esc(sent.claimed_name||"-")+'</b></p><button class="btn" onclick="location.reload()">다시 확인</button><button class="sub2" id="g-edit">이름을 잘못 적었어요 (다시 적기)</button>'
       : '<p>처음 로그인했어요.<br>팀원 명단의 <b>본인 이름</b>을 적어 주세요.<br>관리자가 확인한 뒤 일정이 보여요.</p><input id="g-name" placeholder="실명 (예: 홍길동)" maxlength="30" autocomplete="name"><button class="btn" id="g-send">연결 요청 보내기</button>')
       + '<button class="sub2" id="g-out">다른 계정으로 로그인</button>');
     if($("g-send")) $("g-send").onclick = async ()=>{ const v=$("g-name").value.trim(); if(!v) return toast("이름을 적어 주세요.", true);

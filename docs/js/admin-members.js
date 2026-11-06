@@ -15,7 +15,7 @@ function admRenderMembers(){
     '<span class="mn">'+esc(r.claimed||"(이름 안 적음)")+'</span>'+
     '<span class="ma">카카오 닉네임 <b>'+esc(r.nickname||"-")+'</b> · 요청 '+(r.at?(new Date(r.at).getMonth()+1)+"/"+new Date(r.at).getDate()+" "+String(new Date(r.at).getHours()).padStart(2,"0")+":"+String(new Date(r.at).getMinutes()).padStart(2,"0"):"")+'</span>'+
     '<select data-lsel aria-label="연결할 팀원"><option value="">팀원 고르기</option>'+free.map(m=>'<option'+(m.name===r.claimed?' selected':'')+'>'+esc(m.name)+'</option>').join("")+'</select>'+
-    '<button type="button" class="lnk" data-link><b>연결</b></button><button type="button" class="danger" data-ldis>거절</button></div>').join("")+'<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">' : '';
+    '<button type="button" class="lnk" data-link><b>연결</b></button><button type="button" class="danger" data-ldis>거절</button></div>').join("")+'<hr class="sep">' : '';
   const list = DATA.members.filter(m=>matchName(m.name,q));
   $("m-list").innerHTML = list.map(m=>{ const c = m.certRaw||"";
     return '<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+

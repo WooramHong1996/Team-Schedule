@@ -127,14 +127,14 @@ function renderDay(){
     const jump = (typeof ADM!=="undefined" && ADM.admin) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동'
                : ' infocard" data-evinfo="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 자세히 보기';
     const shiftTxt = it.mines.map(m=> m==="야간" ? '<span class="nbadge">야간</span>' : '주간').join(" · ");
-    return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
+    return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t full">'+esc(it.ev.name)+'</span>'+
     '<span class="k">근무</span><span class="v"><b>'+shiftTxt+'</b></span>'+
     '<span class="k">함께 주간</span><span class="v">'+(o.day.length?who(o.day):"-")+'</span>'+
     '<span class="k">함께 야간</span><span class="v">'+(o.night.length?who(o.night):"-")+'</span>'+
     (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+
     (!ADM.admin ? '<span class="meta more">'+(it.ev.notice?icon('pin',13)+' 공지 있음 · ':'')+'자세히 보기 ›</span>' : '')+'</div>'; }).join("");
   else html += items.map(it=>
-    '<div class="item '+it.ev.cls+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
+    '<div class="item '+it.ev.cls+'"><span class="t full">'+esc(it.ev.name)+'</span>'+
     '<span class="k">주간</span><span class="v">'+(it.day.length?who(it.day):"-")+'</span>'+
     '<span class="k">야간</span><span class="v">'+(it.night.length?who(it.night):"-")+'</span>'+
     (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+

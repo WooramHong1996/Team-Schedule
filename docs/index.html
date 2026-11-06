@@ -9,9 +9,7 @@
 <title>팀 행사 일정</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/admin.css">
-<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="gate" id="gate" aria-live="polite"><div class="gcard"><h1>팀 행사 일정</h1><div id="g-body"><p>불러오는 중…</p></div></div></div>
@@ -67,16 +65,16 @@
       <div class="frow"><span>야간 날짜 — 야간이 있는 날만 체크, 시간제면 시간 입력 (비우면 일당)</span>
         <div class="nights" id="e-nights"><p class="empty">시작일·종료일을 고르면 날짜가 나와요.</p></div></div>
       <div class="frow"><span>인원 (선택) — 기간 전체에 넣을 사람. 날짜마다 다르면 추가한 뒤 "인원 배정"에서 고치면 돼요</span>
-        <div class="ad-all" style="background:transparent;padding:0">
-          <input list="memlist" id="e-pin" placeholder="이름 입력 → Enter" enterkeyhint="done" style="width:10em">
-          <select id="e-pshift" aria-label="근무" style="width:auto"><option value="0">주간</option><option value="1">야간</option></select>
+        <div class="ad-all plain">
+          <input list="memlist" id="e-pin" placeholder="이름 입력 → Enter" enterkeyhint="done">
+          <select id="e-pshift" aria-label="근무"><option value="0">주간</option><option value="1">야간</option></select>
           <button type="button" class="ad-more" id="e-padd">추가</button>
         </div>
         <div class="tags" id="e-ptags"><span class="hint">아직 고른 사람이 없어요</span></div></div>
       <div class="actions"><button class="btn" type="submit">행사 추가</button></div>
     </form>
     </details>
-    <div class="actions" style="margin-top:8px"><h2 id="e-title" style="margin:0">행사</h2>
+    <div class="actions top"><h2 id="e-title">행사</h2>
       <div class="mnav"><button type="button" id="e-prev" aria-label="이전 달">‹</button>
         <input type="month" id="e-month" aria-label="달 고르기"><button type="button" id="e-next" aria-label="다음 달">›</button></div></div>
     <div class="esearch"><input type="search" id="e-q" placeholder="행사 이름 검색 (모든 달에서 찾기)" autocomplete="off"></div>
@@ -99,7 +97,7 @@
   </section>
 
   <section class="panel apanel" id="adm-people">
-    <div class="actions"><h2 id="p-title" style="margin:0">인원 현황</h2><span class="count">달은 위 ‹ › 로 바꿔요</span></div>
+    <div class="actions"><h2 id="p-title">인원 현황</h2><span class="count">달은 위 ‹ › 로 바꿔요</span></div>
     <div class="pclose" id="p-close"></div>
     <div class="kpis" id="p-sum"></div>
     <div class="tscroll"><table class="ptable" id="p-table"></table></div>
@@ -119,11 +117,10 @@
       </div>
       <div class="actions"><button class="btn" type="submit">팀원 추가</button></div>
     </form>
-    <div class="actions" style="margin-top:8px"><h2 style="margin:0">팀원 목록</h2>
-      <input type="text" id="m-q" class="count" placeholder="이름·초성 검색" autocomplete="off"
-        style="font:inherit;font-size:16px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);padding:0 10px;max-width:12em"></div>
+    <div class="actions top"><h2>팀원 목록</h2>
+      <input type="text" id="m-q" class="count" placeholder="이름·초성 검색" autocomplete="off"></div>
     <div id="m-list"></div>
-    <details id="m-former" class="allp" hidden style="margin-top:10px"><summary>퇴사자 <span id="m-fcnt"></span></summary><div id="m-flist"></div></details>
+    <details id="m-former" class="allp" hidden><summary>퇴사자 <span id="m-fcnt"></span></summary><div id="m-flist"></div></details>
     <p class="foot">일당·시급을 비워 두면 전시 100,000원 · 외부 90,000원 · 시급 10,000원이 들어가요. 새 팀원은 명단 맨 아래에 붙어요. 퇴사 처리하면 지난 근무 기록과 급여는 그대로 남고 명단·로그인에서만 빠져요(오늘 이후 배정은 빠져요). 퇴사자는 아래 목록에서 복귀시킬 수 있어요. 이름을 고쳐도 배정은 그대로 유지돼요. 팀원이 카카오로 처음 로그인하면 위에 "연결 요청"이 뜨고, 명단의 누구인지 골라 연결하면 그때부터 본인 일정이 보여요. 카카오가 연결된 사람은 "간부 지정"을 누르면 관리자 화면을 쓸 수 있어요(관리자는 최소 1명 남아야 해요).</p>
   </section>
 

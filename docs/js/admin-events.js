@@ -160,10 +160,10 @@ function renderEventDetail(){
   box.dataset.mode = "extra";
   const ov = DATA.needOv||{};
   box.innerHTML =
-    '<h3>야간 날짜</h3><p class="foot" style="margin:0">야간이 있는 날만 체크 · 시간제면 시간 입력 (비우면 일당)</p>'+
+    '<h3>야간 날짜</h3><p class="foot tight">야간이 있는 날만 체크 · 시간제면 시간 입력 (비우면 일당)</p>'+
     '<div class="nights">'+nightRowsHTML(ev.start, ev.end, nightsOf(name))+'</div>'+
     '<div class="actions"><button type="button" class="btn" data-nsave>야간 날짜 저장</button></div>'+
-    '<h3>날짜별 필요 인원</h3><p class="foot" style="margin:0">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
+    '<h3>날짜별 필요 인원</h3><p class="foot tight">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
     '<div class="nights">'+datesBetween(ev.start, ev.end).map(d=>{ const o = ov[d+"|"+name]||[null,null];
       return '<div class="nrow need"><span>'+md(d)+'</span>'+
         '<input type="number" min="0" data-nd="'+d+'" placeholder="주간 '+(ev.needDay??"-")+'" value="'+(o[0]??"")+'" aria-label="'+md(d)+' 주간 필요">'+
@@ -252,7 +252,7 @@ function renderAssignBox(box, name){
         '<div class="ad-row"><span class="k">주간</span><span class="ad-names">'+g.주간.map(n=>chip(n,d,0)).join("")+adder(d,0)+'</span></div>'+
         (showNight
           ? '<div class="ad-row night"><span class="k">야간</span><span class="ad-names">'+g.야간.map(n=>chip(n,d,1)).join("")+adder(d,1)+
-              (planned?'<span class="count" style="margin:0">'+(h?h+'시간제':'일당')+'</span>':'')+'</span></div>'
+              (planned?'<span class="count tight">'+(h?h+'시간제':'일당')+'</span>':'')+'</span></div>'
           : '<div><button type="button" class="ad-more" data-anight="'+esc(key)+'">+ 야간</button></div>')+
       '</div>'; }).join("");
 }

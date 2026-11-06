@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const DOCS = process.argv[2];
-const MOCK = fs.readFileSync(path.join(__dirname, 'mocksb.js'), 'utf8');
+const MOCK = fs.readFileSync(path.join(__dirname, '..', 'docs', 'preview', 'mock.js'), 'utf8');
 
 function seed(user) {
   const members = [

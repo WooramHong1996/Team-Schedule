@@ -56,7 +56,7 @@ function admDayExtra(it){
   const names = arr => arr.length ? who(arr) : "-";
   const NHm = DATA.nightHours||{}, key = selected+'|'+e.name, planned = key in NHm, h = NHm[key];
   return '<div class="item '+e.cls+' jumpcard" data-jump="'+esc(e.name)+'" role="button" tabindex="0" title="행사 관리로 이동">'+
-    '<span class="t" style="grid-column:1/-1">'+esc(e.name)+'</span>'+
+    '<span class="t full">'+esc(e.name)+'</span>'+
     needLine(selected, it)+
     '<span class="k">주간</span><span class="v">'+names(it.day)+'</span>'+
     '<span class="k">야간</span><span class="v">'+names(it.night)+'</span>'+

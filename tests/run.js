@@ -10,7 +10,7 @@ function seed(user) {
     { id: 3, name: '오한솔', cert: '있음', rate_out: null, rate_exh: null, rate_hour: 10000, user_id: null, active: true, sort_order: 3 },
   ];
   const events = [
-    { id: 11, name: '수원 메쎄 입주자박람회', type: '전시', start_date: '2026-11-03', end_date: '2026-11-05', place: '수원', need_day: 2, need_night: null },
+    { id: 11, name: '수원 메쎄 입주자박람회', type: '전시', start_date: '2026-11-03', end_date: '2026-11-05', place: '수원', manager: '김담당', contact: '010-1234-5678', memo: '내부메모 비밀', notice: '06:30 B게이트 집합 · 검정 정장', need_day: 2, need_night: null },
     { id: 12, name: '구리 총회', type: '외부', start_date: '2026-11-04', end_date: '2026-11-04', place: null, need_day: null, need_night: null },
   ];
   const assignments = [
@@ -76,6 +76,17 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     await p.evaluate(() => { view = new Date(2026, 10, 1); selected = '2026-11-04'; render(); });
     const day = await p.textContent('#daypanel');
     T('day panel shows coworker', day.includes('홍우람') && day.includes('수원 메쎄'));
+    await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);   // 날짜 패널은 휴대폰 화면에서 보임
+    await p.click('#daypanel [data-evinfo="수원 메쎄 입주자박람회"]'); await p.waitForTimeout(200);
+    { const t = await p.textContent('#ei-body');
+      T('member event info opens', await p.evaluate(() => $('evinfo').open));
+      T('info shows notice, manager, tel, my day + coworker', t.includes('06:30 B게이트') && t.includes('김담당') && t.includes('010-1234-5678') && t.includes('11/4') && t.includes('함께: 홍우람'));
+      T('internal memo hidden from member', !t.includes('내부메모') && !(await p.evaluate(() => JSON.stringify(DATA).includes('내부메모')))); }
+    await p.click('#ei-close'); await p.waitForTimeout(100);
+    T('info closes', await p.evaluate(() => !$('evinfo').open));
+    await p.click('#evlist [data-evinfo]'); await p.waitForTimeout(150);
+    T('event list opens info too', await p.evaluate(() => $('evinfo').open));
+    await p.screenshot({ path: path.join(__dirname, 'member.png') }); await p.click('#ei-close');
     T('no errors (member)', errs.length === 0); if (errs.length) console.log(errs); }
   // 4) 관리자
   { const { p, errs } = await page(b, { id: 'U-admin', user_metadata: {} });

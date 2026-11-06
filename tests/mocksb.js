@@ -127,7 +127,7 @@
       const me = myMember(); if(!me) return { data:[], error:null };
       const mine = new Set(T.assignments.filter(a=>a.member_id===me.id && a.work_date>=args.p_from && a.work_date<=args.p_to).map(a=>a.work_date+'|'+a.event_id));
       const data = T.assignments.filter(a=>mine.has(a.work_date+'|'+a.event_id)).map(a=>{ const e=T.events.find(x=>x.id===a.event_id), m=T.members.find(x=>x.id===a.member_id);
-        return { work_date:a.work_date, event_id:e.id, event_name:e.name, event_type:e.type, place:e.place, start_date:e.start_date, end_date:e.end_date, shift:a.shift, member_name:m.name, cert:m.cert, is_me:m.id===me.id }; });
+        return { work_date:a.work_date, event_id:e.id, event_name:e.name, event_type:e.type, place:e.place, start_date:e.start_date, end_date:e.end_date, shift:a.shift, member_name:m.name, cert:m.cert, is_me:m.id===me.id, manager:e.manager||null, contact:e.contact||null, notice:e.notice||null }; });
       return { data, error:null }; }); },
     auth: {
       getSession: async()=>({ data:{ session: M.user ? { user: M.user } : null } }),

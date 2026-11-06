@@ -127,7 +127,8 @@ function renderEventDetail(){
     '<h2><i class="sw '+clsFor(ev.type)+'"></i>'+esc(ev.name)+'</h2>'+
     '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mm(ev.start)+(ev.end!==ev.start?" – "+mm(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
     (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a href="tel:'+esc(ev.contact)+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
-    (ev.memo ? '<span class="memo">'+esc(ev.memo)+'</span>' : '')+
+    (ev.notice ? '<span class="memo"><b>팀원 공지</b> '+esc(ev.notice)+'</span>' : '')+
+    (ev.memo ? '<span class="memo"><b>메모</b> '+esc(ev.memo)+'</span>' : '')+
     '<div class="ebadges"><span class="ebadge">배정 '+cnt+'칸</span>'+
       (sh ? '<span class="ebadge bad">인원 부족 '+sh+'일</span>' : (ev.needDay!=null||ev.needNight!=null ? '<span class="ebadge ok">필요 인원 OK</span>' : '<span class="ebadge">필요 인원 미입력</span>'))+
       (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+(closed ? '<span class="ebadge">급여 마감된 날 있음</span>' : '')+'</div>';
@@ -149,7 +150,8 @@ function renderEventDetail(){
       '<label class="frow"><span>연락처</span><input data-f="contact" inputmode="tel" value="'+v("contact")+'"></label></div>'+
       '<div class="fgrid"><label class="frow"><span>필요 인원 · 주간 (하루 기본)</span><input type="number" min="0" data-f="needDay" value="'+v("needDay")+'"></label>'+
       '<label class="frow"><span>필요 인원 · 야간 (하루 기본)</span><input type="number" min="0" data-f="needNight" value="'+v("needNight")+'"></label></div>'+
-      '<label class="frow"><span>메모</span><textarea data-f="memo">'+v("memo")+'</textarea></label>'+
+      '<label class="frow"><span>팀원 공지 — 팀원 화면에 보여요 (집합 시간·복장·준비물 등)</span><textarea data-f="notice">'+v("notice")+'</textarea></label>'+
+      '<label class="frow"><span>메모 — 관리자만 보여요</span><textarea data-f="memo">'+v("memo")+'</textarea></label>'+
       '<div class="actions"><button type="button" class="btn" data-esave>저장</button><span class="count">이름을 바꿔도 배정은 그대로 이어져요</span></div></div>'+
       '<div class="dangerzone"><button type="button" class="danger" data-del="'+esc(name)+'">이 행사 삭제</button><span class="count">지난 근무 기록이 있는 행사는 지울 수 없어요</span></div>';
     return;

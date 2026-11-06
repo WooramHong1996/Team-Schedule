@@ -142,3 +142,31 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 }
 @media (prefers-reduced-motion:no-preference){.day{transition:background-color .12s}}
 
+
+/* ---------- 팀원: 행사 자세히 보기 ---------- */
+.item.infocard{cursor:pointer}
+.item.infocard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.item .meta.more{color:var(--accent);font-weight:600}
+#evinfo{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 24px));max-height:min(86vh,760px);background:var(--surface);color:var(--fg);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+#evinfo::backdrop{background:rgba(0,0,0,.45)}
+#evinfo #ei-body{padding:18px 18px 22px;overflow:auto;max-height:inherit;box-sizing:border-box}
+.eiclose{position:absolute;right:8px;top:8px;width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--fg);font-size:1.6rem;cursor:pointer}
+.eihead{display:flex;align-items:center;gap:8px;padding-right:40px}
+.eihead h2{margin:0;font-size:1.15rem;line-height:1.35}
+.eimeta{color:var(--muted);font-size:.9rem;margin:4px 0 10px}
+.eidl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0 0 10px;font-size:.92rem}
+.eidl dt{color:var(--muted)}
+.eidl dd{margin:0;overflow-wrap:anywhere}
+.eitel,.eimap{display:inline-block;margin-left:4px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:var(--accent);font-size:.85rem}
+.einotice{background:color-mix(in srgb,#FEE500 22%,var(--surface));border-radius:10px;padding:10px 12px;margin:6px 0 12px}
+.einotice p{margin:4px 0 0;white-space:pre-wrap;line-height:1.55}
+#evinfo h3{font-size:1rem;margin:14px 0 6px}
+#evinfo h3 small{color:var(--muted);font-weight:400;margin-left:4px}
+.eirow{border-top:1px solid var(--line);padding:8px 0;display:grid;gap:4px}
+.eirow.past{opacity:.55}
+.eirow.today{background:color-mix(in srgb,var(--accent) 8%,transparent);margin:0 -8px;padding:8px}
+.eid{font-weight:700;font-size:.92rem}
+.eitoday{font-size:.72rem;background:var(--accent);color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px}
+.eis{display:flex;gap:8px;align-items:baseline;font-size:.9rem}
+.eiw{overflow-wrap:anywhere}
+.dbadge{font-size:.75rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);flex-shrink:0}

@@ -85,7 +85,7 @@ function render(){
   const evlist = document.getElementById("evlist");
   const mm = d => { const [yy,mo,dd]=d.split("-"); return Number(mo)+"/"+Number(dd)+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
   evlist.innerHTML = [...monthEvents.values()].sort((a,b)=>(a.start||"").localeCompare(b.start||""))
-    .map(e=>'<div class="ev'+(ADM.admin?' jump':'')+'" data-jump="'+esc(e.name)+'"'+(ADM.admin?' role="button" tabindex="0"':'')+'><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
+    .map(e=>'<div class="ev'+(ADM.admin?' jump':' jump')+'" data-jump="'+esc(e.name)+'"'+(ADM.admin?'':' data-evinfo="'+esc(e.name)+'"')+' role="button" tabindex="0"><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
     || '<p class="empty">'+(person?esc(person)+'님은 이번 달 배정된 일정이 없어요.':'이번 달에는 등록된 행사가 없어요.')+'</p>';
 
   renderDay();
@@ -114,13 +114,15 @@ function renderDay(){
   else if(ADM.admin && !person) html += items.map(admDayExtra).join("");
   else if(person) html += pItems.map(it=>{ const o = others(it);
     const onlyNight = it.mines.length===1 && it.mines[0]==="야간";
-    const jump = (typeof ADM!=="undefined" && ADM.admin) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동' : '';
+    const jump = (typeof ADM!=="undefined" && ADM.admin) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동'
+               : ' infocard" data-evinfo="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 자세히 보기';
     const shiftTxt = it.mines.map(m=> m==="야간" ? '<span class="nbadge">야간</span>' : '주간').join(" · ");
     return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
     '<span class="k">근무</span><span class="v"><b>'+shiftTxt+'</b></span>'+
     '<span class="k">함께 주간</span><span class="v">'+(o.day.length?who(o.day):"-")+'</span>'+
     '<span class="k">함께 야간</span><span class="v">'+(o.night.length?who(o.night):"-")+'</span>'+
-    (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+'</div>'; }).join("");
+    (it.ev.place?'<span class="meta">장소: '+esc(it.ev.place)+'</span>':'')+
+    (!ADM.admin ? '<span class="meta more">'+(it.ev.notice?'📌 공지 있음 · ':'')+'자세히 보기 ›</span>' : '')+'</div>'; }).join("");
   else html += items.map(it=>
     '<div class="item '+it.ev.cls+'"><span class="t" style="grid-column:1/-1">'+esc(it.ev.name)+'</span>'+
     '<span class="k">주간</span><span class="v">'+(it.day.length?who(it.day):"-")+'</span>'+

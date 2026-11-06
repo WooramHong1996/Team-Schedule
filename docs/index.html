@@ -62,7 +62,8 @@
         <label class="frow"><span>필요 인원 · 주간 (하루 기본)</span><input name="needDay" type="number" min="0" inputmode="numeric" placeholder="예: 5"></label>
         <label class="frow"><span>필요 인원 · 야간 (하루 기본)</span><input name="needNight" type="number" min="0" inputmode="numeric" placeholder="비우면 없음"></label>
       </div>
-      <label class="frow"><span>메모</span><textarea name="memo"></textarea></label>
+      <label class="frow"><span>팀원 공지 — 팀원 화면에 보여요 (집합 시간·복장·준비물 등)</span><textarea name="notice" placeholder="예: 06:30 2홀 B게이트 집합 · 검정 정장 · 이어폰 지참"></textarea></label>
+      <label class="frow"><span>메모 — 관리자만 보여요</span><textarea name="memo"></textarea></label>
       <div class="frow"><span>야간 날짜 — 야간이 있는 날만 체크, 시간제면 시간 입력 (비우면 일당)</span>
         <div class="nights" id="e-nights"><p class="empty">시작일·종료일을 고르면 날짜가 나와요.</p></div></div>
       <div class="frow"><span>인원 (선택) — 기간 전체에 넣을 사람. 날짜마다 다르면 추가한 뒤 "인원 배정"에서 고치면 돼요</span>
@@ -155,6 +156,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<dialog id="evinfo" aria-labelledby="ei-title"><button type="button" class="eiclose" id="ei-close" aria-label="닫기">×</button><div id="ei-body"></div></dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/api.js"></script>
 <script src="js/util.js"></script>
@@ -165,6 +167,7 @@
 <script src="js/admin-events.js"></script>
 <script src="js/admin-members.js"></script>
 <script src="js/admin-pay.js"></script>
+<script src="js/event-info.js"></script>
 <script src="js/boot.js"></script>
 </body>
 </html>

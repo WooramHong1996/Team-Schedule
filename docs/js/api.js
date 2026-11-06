@@ -140,7 +140,7 @@
       })),
       events: events.map(e => ({
         name: e.name, type: e.type || '', start: e.start_date, end: e.end_date, place: e.place || '',
-        manager: e.manager || '', contact: e.contact || '', memo: e.memo || '', needDay: e.need_day, needNight: e.need_night
+        manager: e.manager || '', contact: e.contact || '', memo: e.memo || '', notice: e.notice || '', needDay: e.need_day, needNight: e.need_night
       })),
       assign: assigns.map(a => [a.work_date, mName.get(a.member_id), a.shift === '야간' ? 1 : 0, eName.get(a.event_id)]),
       nightHours, needOv, closings,
@@ -152,13 +152,14 @@
     const t = new Date();
     const from = iso(new Date(t.getFullYear() - 1, t.getMonth(), 1));
     const to = iso(new Date(t.getFullYear() + 1, t.getMonth() + 1, 0));
-    const { data, error } = await sb.rpc('my_schedule', { p_from: from, p_to: to });
+    const { data, error } = await sb.rpc('my_schedule_v2', { p_from: from, p_to: to });
     fail(error);
     const members = new Map(), events = new Map(), assign = [];
     if (S.me) members.set(S.me.name, { name: S.me.name, cert: S.me.cert !== '없음' });
     (data || []).forEach(r => {
       if (!members.has(r.member_name)) members.set(r.member_name, { name: r.member_name, cert: r.cert !== '없음' });
-      if (!events.has(r.event_name)) events.set(r.event_name, { name: r.event_name, type: r.event_type || '', start: r.start_date, end: r.end_date, place: r.place || '' });
+      if (!events.has(r.event_name)) events.set(r.event_name, { name: r.event_name, type: r.event_type || '', start: r.start_date, end: r.end_date, place: r.place || '',
+        manager: r.manager || '', contact: r.contact || '', notice: r.notice || '' });
       assign.push([r.work_date, r.member_name, r.shift === '야간' ? 1 : 0, r.event_name]);
     });
     return { updated: stamp(), role: 'member', me: S.me ? S.me.name : '', members: [...members.values()], events: [...events.values()], assign };
@@ -224,7 +225,7 @@
       name: String(f.name || '').trim(), type: ['전시', '외부'].includes(f.type) ? f.type : null,
       start_date: f.start, end_date: f.end || f.start,
       place: (f.place || '').trim() || null, manager: (f.manager || '').trim() || null, contact: (f.contact || '').trim() || null,
-      memo: (f.memo || '').trim() || null, need_day: n0(f.needDay), need_night: n0(f.needNight)
+      memo: (f.memo || '').trim() || null, notice: (f.notice || '').trim() || null, need_day: n0(f.needDay), need_night: n0(f.needNight)
     };
   }
   async function adminAddEvent(f) {

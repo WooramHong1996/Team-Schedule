@@ -12,7 +12,7 @@ function render(){
   // 휴대폰 막대: 같은 행사는 한 주 안에서 같은 줄(lane)에 놓아 이어져 보이게 합니다
   const cellItems = [];
   for(let i=0;i<weeks*7;i++) cellItems.push(itemsFor(iso(new Date(start.getFullYear(), start.getMonth(), start.getDate()+i))));
-  const MAXL = 4;
+  const MAXL = 4, MAXD = 6;   // 한 칸에 보이는 줄 수 (휴대폰 / 컴퓨터)
   const laneOf = [];   // 주마다 {행사명: 줄번호}
   for(let w=0; w<weeks; w++){
     const days = {};   // 행사명 -> 그 주에 들어간 요일들
@@ -31,13 +31,23 @@ function render(){
     if(inMonth) items.forEach(it=>monthEvents.set(it.ev.name, evMap.get(it.ev.name) || it.ev));
     const cls = ["day", inMonth?"":"out", d.getDay()===0?"sun":"", d.getDay()===6?"sat":"",
       key===todayKey?"today":"", key===selected?"sel":"", (!person&&hasMiss(items))?"warn":""].join(" ");
-    const chips = person ? items.map(it=>
-      '<div class="chip '+it.ev.cls+'"><b>'+esc(it.ev.name)+'</b><span class="shift">'+myShift(it)+'</span></div>').join("") : items.map(it=>{
-      const dayTxt = it.day.length ? '<span class="n">'+who(it.day)+'</span>' : (it.night.length?'':'<span class="n none">미배정</span>');
-      const nightTxt = it.night.length ? '<span class="night">야간 '+who(it.night)+'</span>' : '';
-      return '<div class="chip '+it.ev.cls+'"><b>'+esc(it.ev.name)+'</b>'+dayTxt+nightTxt+'</div>';
-    }).join("");
     const lanes = laneOf[Math.floor(i/7)], dow = i%7;
+    // 컴퓨터 화면: 같은 행사는 같은 줄에 놓고, 이어지는 날은 칸 경계를 덮는 막대로 한 줄처럼 (이름은 첫 칸에만)
+    // 막대 아래에는 그날 들어가는 사람(한 사람 보기면 주간/야간)
+    const dslot = new Array(MAXD).fill('<div class="lslot"></div>');
+    let dHidden = 0, dTop = -1;
+    items.forEach(it=>{
+      const kk = kOf(it), l = lanes[kk];
+      if(l>=MAXD){ dHidden++; return; }
+      const fromL = dow>0 && has(i-1, kk), toR = dow<6 && has(i+1, kk);
+      let run = 1; if(!fromL) while(dow+run<7 && has(i+run, kk)) run++;
+      const sub = person ? myShift(it)
+        : (it.day.length ? who(it.day) : (it.night.length ? '' : '<span class="none">미배정</span>')) + (it.night.length ? ' <span class="night">야간 '+who(it.night)+'</span>' : '');
+      dslot[l] = '<div class="lslot"><span class="dbar '+it.ev.cls+(fromL?' cl':'')+(toR?' cr':'')+'" style="--run:'+run+'">'+
+        (fromL ? '' : '<em>'+(it.mine==="야간"?"야간 ":"")+esc(it.ev.name)+'</em>')+'</span><span class="lsub">'+sub+'</span></div>';
+      dTop = Math.max(dTop, l);
+    });
+    const chips = dslot.slice(0, dTop+1).join("") + (dHidden ? '<span class="dmore">+'+dHidden+'개 더</span>' : '');
     const slot = new Array(MAXL).fill('<span class="bar empty"></span>');
     let hidden = 0, top = -1;
     items.forEach(it=>{

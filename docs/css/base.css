@@ -60,7 +60,9 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .grid .day:nth-child(7n){border-right:none}
 .day.out{background:var(--bg)}
 .day.out .num,.day.out .chip{opacity:.45}
-.day.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.day{position:relative}
+/* 선택한 날 테두리는 막대보다 앞에 */
+.day.sel::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2px var(--accent);pointer-events:none;z-index:2}
 .num{font-family:var(--f-num);font-weight:600;font-size:.82rem;font-variant-numeric:tabular-nums;
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%}
 .day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
@@ -75,6 +77,19 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .chip .none{opacity:.75}
 .miss{color:var(--warn);font-weight:700}
 .bars{display:none}
+
+/* 컴퓨터 화면: 이어지는 행사는 칸 경계를 덮는 막대 하나로 */
+.lslot{height:36px;min-width:0;display:grid;grid-template-rows:18px 16px;gap:2px}
+.dbar{display:block;height:18px;border-radius:5px;position:relative;min-width:0}
+.dbar.cl{margin-left:-6px;border-top-left-radius:0;border-bottom-left-radius:0}
+.dbar.cr{margin-right:-7px;border-top-right-radius:0;border-bottom-right-radius:0}
+.dbar em{position:absolute;left:6px;top:0;z-index:1;font-style:normal;font-size:.74rem;line-height:18px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:calc(var(--run) * 100% + (var(--run) - 1) * 13px - 10px);pointer-events:none}
+.lsub{font-size:.7rem;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg);padding:0 2px}
+.lsub .night{color:var(--night-ink);font-weight:600}
+.lsub .none{color:var(--muted)}
+.day.out .lslot{opacity:.45}
+.dmore{font-size:.7rem;color:var(--muted);font-family:var(--f-num)}
 
 .c-sky{background:var(--sky-bg);color:var(--sky-ink)} .c-orange{background:var(--orange-bg);color:var(--orange-ink)}
 .c-green{background:var(--green-bg);color:var(--green-ink)} .c-purple{background:var(--purple-bg);color:var(--purple-ink)}

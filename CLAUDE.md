@@ -9,7 +9,7 @@
 - **팀원에게 임금(일당·급여) 노출 금지.** 팀원은 본인 일정 + 같은 날 같은 행사 동료 이름만.
 - **행사 '메모'는 관리자 전용**, 팀원에게 보일 내용은 '팀원 공지'(`events.notice`). 담당자·연락처는 팀원에게 보임.
 - **기록 보호** — 지난 근무가 있는 팀원·행사는 삭제 대신 퇴사/보관. 마감한 달은 배정 잠금. 마지막 관리자 해제 금지.
-- **날짜는 한국 시간(KST)** — DB는 `private.today_kst()`, 화면은 `api.today()`. `current_date`·`new Date()` 그대로 쓰지 말 것.
+- **날짜는 한국 시간(KST)** — DB는 `private.today_kst()`, `api.js` 안에선 `today()`(KST 고정), 화면 달력은 `todayKey`(`data.js`). `current_date`·`new Date()` 그대로 쓰지 말 것.
 
 ## DB 바꿀 때
 - `supabase/migrations/` 에 다음 번호로 파일 추가 → 적용. 기존 파일은 고치지 않음.

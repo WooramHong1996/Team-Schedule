@@ -25,6 +25,6 @@
 - 로그인 없이 보기: `docs/preview.html?as=member|admin|new|guest&theme=dark&frame=phone`.
 
 ## 확인 · 올리기
-- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 58개. 전부 통과해야 함.
+- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 63개. 전부 통과해야 함.
 - 커밋 후 `main` 에 push 하면 1~2분 뒤 사이트 반영. 작업 브랜치 `setup/supabase-schema` 도 같이 맞춰 둠.
 - 사용자(홍우람)에게는 쉬운 한국어로, 개발 용어 대신 화면에서 보이는 말로 설명.

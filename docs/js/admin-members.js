@@ -13,7 +13,7 @@ function admRenderMembers(){
   $("m-reqs").innerHTML = reqs.length ? '<h2>로그인 연결 요청 <small>'+reqs.length+'건</small></h2>'+reqs.map(r=>
     '<div class="mrow" data-uid="'+esc(r.userId)+'">'+(r.avatar?'<img class="kav" src="'+esc(r.avatar)+'" alt="" referrerpolicy="no-referrer">':'<span class="kav">'+esc((r.nickname||"?").slice(0,1))+'</span>')+
     '<span class="mn">'+esc(r.claimed||"(이름 안 적음)")+'</span>'+
-    '<span class="ma">카카오 닉네임 <b>'+esc(r.nickname||"-")+'</b> · 요청 '+(r.at?(new Date(r.at).getMonth()+1)+"/"+new Date(r.at).getDate()+" "+String(new Date(r.at).getHours()).padStart(2,"0")+":"+String(new Date(r.at).getMinutes()).padStart(2,"0"):"")+'</span>'+
+    '<span class="ma">카카오 닉네임 <b>'+esc(r.nickname||"-")+'</b> · 요청 '+(r.at?mdhm(r.at):"")+'</span>'+
     '<select data-lsel aria-label="연결할 팀원"><option value="">팀원 고르기</option>'+free.map(m=>'<option'+(m.name===r.claimed?' selected':'')+'>'+esc(m.name)+'</option>').join("")+'</select>'+
     '<button type="button" class="lnk" data-link><b>연결</b></button><button type="button" class="danger" data-ldis>거절</button></div>').join("")+'<hr class="sep">' : '';
   const list = DATA.members.filter(m=>matchName(m.name,q));
@@ -83,6 +83,7 @@ $("m-list").addEventListener("click", e=>{
     const nn = prompt("새 이름", n); if(!nn || nn.trim()===n) return;
     busy(true);
     api.adminRenameMember(n, nn.trim()).then(r=>{ busy(false); if(person===n) person=nn.trim(); admApply(r.data); toast(n+" → "+nn.trim()); }, admFail);
+    return;
   }
   if(e.target.closest("[data-retire]")){
     if(!confirm(n+" 님을 퇴사 처리할까요?\n지난 근무 기록과 급여는 그대로 남고, 명단·배정 목록·로그인에서만 빠져요. 나중에 복귀시킬 수 있어요.")) return;

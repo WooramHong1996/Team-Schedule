@@ -20,6 +20,7 @@
 - 빌드 없음. 일반 `<script>` 를 `index.html` 아래 순서대로 읽음(전역 공유). 새 파일은 그 순서에 맞춰 추가.
 - 디자인은 `docs/css/style.css` 하나. 색은 맨 위 변수만 쓰기(새 #색 직접 쓰지 않기), HTML·JS 에 `style="..."` 금지(동적 CSS 변수 `--run` 만 예외).
 - 화면 HTML 은 JS 문자열로 만듦 → 사용자 입력은 반드시 `esc()` 로 감싸기(XSS).
+- 날짜·전화 표시는 `util.js` 도우미로: `md`(11/7 (토)) · `mdShort`(11/7) · `mdhm`(11/7 09:05) · `telHref`. 파일마다 새로 만들지 않기.
 - 기준: 손가락 화면에서 누르는 곳 44px+, 글자 12px+, 대비 4.5:1+. 점검은 `.claude/skills/ui-ux-pro-max`.
 - 로그인 없이 보기: `docs/preview.html?as=member|admin|new|guest&theme=dark&frame=phone`.
 

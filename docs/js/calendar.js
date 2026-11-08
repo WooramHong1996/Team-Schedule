@@ -1,4 +1,11 @@
 /* 달력 · 날짜 패널 · 이번 달 행사 목록 */
+// 컴퓨터 달력 막대 아래 줄: 한 사람 보기면 그 사람의 주간/야간, 전체 보기면 그날 들어가는 사람
+function daySub(it){
+  if(person) return myShift(it);
+  const day = it.day.length ? who(it.day) : (it.night.length ? '' : '<span class="none">미배정</span>');
+  const night = it.night.length ? ' <span class="night">야간 '+who(it.night)+'</span>' : '';
+  return day + night;
+}
 function render(){
   const y=view.getFullYear(), m=view.getMonth();
   document.getElementById("month").textContent = y+"년 "+(m+1)+"월";
@@ -32,37 +39,36 @@ function render(){
     const cls = ["day", inMonth?"":"out", d.getDay()===0?"sun":"", d.getDay()===6?"sat":"",
       key===todayKey?"today":"", key===selected?"sel":"", (!person&&hasMiss(items))?"warn":""].join(" ");
     const lanes = laneOf[Math.floor(i/7)], dow = i%7;
-    // 컴퓨터 화면: 같은 행사는 같은 줄에 놓고, 이어지는 날은 칸 경계를 덮는 막대로 한 줄처럼 (이름은 첫 칸에만)
-    // 막대 아래에는 그날 들어가는 사람(한 사람 보기면 주간/야간)
+    // 행사마다 막대 위치: 줄 번호(l), 왼쪽·오른쪽 칸과 이어지는지, 이번 칸부터 몇 칸 이어지는지(run)
+    // 이름은 이어지는 첫 칸에만 적고, 막대가 칸 경계를 덮어 한 줄처럼 보여요
+    const placed = items.map(it=>{
+      const kk = kOf(it), fromL = dow>0 && has(i-1, kk), toR = dow<6 && has(i+1, kk);
+      let run = 1; if(!fromL) while(dow+run<7 && has(i+run, kk)) run++;
+      const barCls = it.ev.cls+(fromL?' cl':'')+(toR?' cr':'');
+      const name = fromL ? '' : '<em>'+(it.mine==="야간"?"야간 ":"")+esc(it.ev.name)+'</em>';
+      return {it, l: lanes[kk], run, barCls, name};
+    });
+    // 컴퓨터 화면: 막대 아래에 그날 들어가는 사람(한 사람 보기면 주간/야간)
     const dslot = new Array(MAXD).fill('<div class="lslot"></div>');
     let dHidden = 0, dTop = -1;
-    items.forEach(it=>{
-      const kk = kOf(it), l = lanes[kk];
+    placed.forEach(({it, l, run, barCls, name})=>{
       if(l>=MAXD){ dHidden++; return; }
-      const fromL = dow>0 && has(i-1, kk), toR = dow<6 && has(i+1, kk);
-      let run = 1; if(!fromL) while(dow+run<7 && has(i+run, kk)) run++;
-      const sub = person ? myShift(it)
-        : (it.day.length ? who(it.day) : (it.night.length ? '' : '<span class="none">미배정</span>')) + (it.night.length ? ' <span class="night">야간 '+who(it.night)+'</span>' : '');
-      dslot[l] = '<div class="lslot"><span class="dbar '+it.ev.cls+(fromL?' cl':'')+(toR?' cr':'')+'" style="--run:'+run+'">'+
-        (fromL ? '' : '<em>'+(it.mine==="야간"?"야간 ":"")+esc(it.ev.name)+'</em>')+'</span><span class="lsub">'+sub+'</span></div>';
+      dslot[l] = '<div class="lslot"><span class="dbar '+barCls+'" style="--run:'+run+'">'+name+'</span><span class="lsub">'+daySub(it)+'</span></div>';
       dTop = Math.max(dTop, l);
     });
     const chips = dslot.slice(0, dTop+1).join("") + (dHidden ? '<span class="dmore">+'+dHidden+'개 더</span>' : '');
+    // 휴대폰 화면: 막대만
     const slot = new Array(MAXL).fill('<span class="bar empty"></span>');
     let hidden = 0, top = -1;
-    items.forEach(it=>{
-      const kk = kOf(it), l = lanes[kk];
+    placed.forEach(({l, run, barCls, name})=>{
       if(l>=MAXL){ hidden++; return; }
-      const fromL = dow>0 && has(i-1, kk), toR = dow<6 && has(i+1, kk);
-      let run = 1; if(!fromL) while(dow+run<7 && has(i+run, kk)) run++;
-      // 이어지는 첫 칸에만 행사 이름을 짧게 적어요
-      slot[l] = '<span class="bar '+it.ev.cls+(fromL?' cl':'')+(toR?' cr':'')+'" style="--run:'+run+'">'+(fromL?'':'<em>'+(it.mine==="야간"?"야간 ":"")+esc(it.ev.name)+'</em>')+'</span>';
+      slot[l] = '<span class="bar '+barCls+'" style="--run:'+run+'">'+name+'</span>';
       top = Math.max(top, l);
     });
     const bars = slot.slice(0, top+1).join("") + (hidden ? '<span class="more">+'+hidden+'</span>' : '');
     const label = (d.getMonth()+1)+"월 "+d.getDate()+"일 "+DOW[d.getDay()]+"요일, 행사 "+items.length+"건";
     html += '<button type="button" class="'+cls+'" data-key="'+key+'" aria-label="'+label+'">'+
-      '<span class="num">'+d.getDate()+'</span>'+(inMonth && typeof ADM!=="undefined" && dayShort(key, cellItems[i])?'<span class="short-dot" title="인원 부족"></span>':'')+'<div class="chips">'+chips+'</div><div class="bars">'+bars+'</div></button>';
+      '<span class="num">'+d.getDate()+'</span>'+(inMonth && dayShort(key, items)?'<span class="short-dot" title="인원 부족"></span>':'')+'<div class="chips">'+chips+'</div><div class="bars">'+bars+'</div></button>';
   }
   grid.innerHTML = html;
 
@@ -93,13 +99,12 @@ function render(){
   document.getElementById("evtitle").textContent = person ? person+"님의 이번 달 행사" : "이번 달 행사";
 
   const evlist = document.getElementById("evlist");
-  const mm = d => { const [yy,mo,dd]=d.split("-"); return Number(mo)+"/"+Number(dd)+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
   evlist.innerHTML = [...monthEvents.values()].sort((a,b)=>(a.start||"").localeCompare(b.start||""))
-    .map(e=>'<div class="ev'+(ADM.admin?' jump':' jump')+'" data-jump="'+esc(e.name)+'"'+(ADM.admin?'':' data-evinfo="'+esc(e.name)+'"')+' role="button" tabindex="0"><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?mm(e.start)+(e.end&&e.end!==e.start?" – "+mm(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
+    .map(e=>'<div class="ev jump" data-jump="'+esc(e.name)+'"'+(ADM.admin?'':' data-evinfo="'+esc(e.name)+'"')+' role="button" tabindex="0"><i class="sw '+e.cls+'"></i><span class="when">'+(e.start?md(e.start)+(e.end&&e.end!==e.start?" – "+md(e.end):""):"")+'</span><span>'+esc(e.name)+'</span>'+(person?'<span class="cnt">'+(myDays.has(e.name)?myDays.get(e.name).size:0)+'일</span>':'')+'</div>').join("")
     || '<p class="empty">'+(person?esc(person)+'님은 이번 달 배정된 일정이 없어요.':'이번 달에는 등록된 행사가 없어요.')+'</p>';
 
   renderDay();
-  if(typeof ADM!=='undefined' && ADM.admin && ADM.tab!=='cal') admRenderPanels();
+  if(ADM.admin && ADM.tab!=='cal') admRenderPanels();
 }
 
 function renderDay(){
@@ -124,7 +129,7 @@ function renderDay(){
   else if(ADM.admin && !person) html += items.map(admDayExtra).join("");
   else if(person) html += pItems.map(it=>{ const o = others(it);
     const onlyNight = it.mines.length===1 && it.mines[0]==="야간";
-    const jump = (typeof ADM!=="undefined" && ADM.admin) ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동'
+    const jump = ADM.admin ? ' jumpcard" data-jump="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 관리로 이동'
                : ' infocard" data-evinfo="'+esc(it.ev.name)+'" role="button" tabindex="0" title="행사 자세히 보기';
     const shiftTxt = it.mines.map(m=> m==="야간" ? '<span class="nbadge">야간</span>' : '주간').join(" · ");
     return '<div class="item '+(onlyNight?'c-night':it.ev.cls)+jump+'"><span class="t full">'+esc(it.ev.name)+'</span>'+

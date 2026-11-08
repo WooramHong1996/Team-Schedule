@@ -114,19 +114,24 @@ function shortDays(name){
   return datesBetween(ev.start, ev.end).filter(d=>{ const [nd,nn] = needFor(d, name), g = by[d]||[0,0];
     return (nd!=null && g[0]<nd) || (nn!=null && g[1]<nn); }).length;
 }
+// 종류 고르기: 전시/외부. 종류가 없는 행사는 '종류 없음'을 골라 둬서, 저장해도 다른 종류로 바뀌지 않게
+function typeOptions(cur){
+  const known = TYPE_ORDER.includes(cur);
+  return (known ? '' : '<option value="" selected>종류 없음</option>') +
+    TYPE_ORDER.map(t=>'<option value="'+t+'"'+(cur===t?' selected':'')+'>'+t+'</option>').join("");
+}
 function renderEventDetail(){
   const name = ADM.evOpen, ev = DATA.events.find(x=>x.name===name);
   if(!ev){ showEventList(); return; }
   ADM.lastOpen = name;
   $("e-listview").hidden = true; $("e-detail").hidden = false;
-  const mm = s => Number(s.slice(5,7))+"/"+Number(s.slice(8,10));
   const cnt = DATA.assign.filter(a=>a.event===name).length, sh = shortDays(name);
   const nn = Object.keys(nightsOf(name)).length;
   const closed = datesBetween(ev.start, ev.end).some(d=>(DATA.closings||{})[d.slice(0,7)]);
   $("ed-head").innerHTML =
     '<h2><i class="sw '+clsFor(ev.type)+'"></i>'+esc(ev.name)+'</h2>'+
-    '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mm(ev.start)+(ev.end!==ev.start?" – "+mm(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
-    (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a class="eitel" href="tel:'+esc(ev.contact)+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
+    '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mdShort(ev.start)+(ev.end!==ev.start?" – "+mdShort(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
+    (ev.manager||ev.contact ? '<span class="meta">담당 '+esc(ev.manager||"")+(ev.contact?' · <a class="eitel" href="'+esc(telHref(ev.contact))+'">'+esc(ev.contact)+'</a>':'')+'</span>' : '')+
     (ev.notice ? '<span class="memo"><b>팀원 공지</b> '+esc(ev.notice)+'</span>' : '')+
     (ev.memo ? '<span class="memo"><b>메모</b> '+esc(ev.memo)+'</span>' : '')+
     '<div class="ebadges"><span class="ebadge">배정 '+cnt+'칸</span>'+
@@ -142,7 +147,7 @@ function renderEventDetail(){
     box.dataset.mode = "edit";
     box.innerHTML = '<div class="form">'+
       '<label class="frow"><span>행사명</span><input data-f="name" value="'+v("name")+'"></label>'+
-      '<div class="fgrid"><label class="frow"><span>종류</span><select data-f="type">'+["전시","외부"].map(t=>'<option'+(ev.type===t?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
+      '<div class="fgrid"><label class="frow"><span>종류</span><select data-f="type">'+typeOptions(ev.type)+'</select></label>'+
       '<label class="frow"><span>시작일</span><input type="date" data-f="start" value="'+v("start")+'"></label>'+
       '<label class="frow"><span>종료일</span><input type="date" data-f="end" value="'+v("end")+'"></label></div>'+
       '<div class="fgrid"><label class="frow"><span>장소</span><input data-f="place" value="'+v("place")+'"></label>'+
@@ -299,7 +304,6 @@ function renderEventList(){
   // 이름 검색이 있으면 모든 달에서 찾고, 없으면 고른 달의 행사만
   const evs = q ? eventsSorted().filter(e=>matchName(e.name, q))
                 : eventsSorted().filter(e=>e.start<=eEnd && e.end>=eStart);
-  const mm = s => Number(s.slice(5,7))+"/"+Number(s.slice(8,10));
   $("e-month").value = ey+"-"+pad(em+1);
   document.querySelector(".mnav").classList.toggle("dim", !!q);
   $("e-title").textContent = q ? "검색 결과 "+evs.length+"개" : (em+1)+"월 행사 "+evs.length+"개";
@@ -311,7 +315,7 @@ function renderEventList(){
     const sh = shortDays(e.name), nn = Object.keys(nightsOf(e.name)).length;
     const noNeed = e.needDay==null && e.needNight==null;
     return monHead+'<div class="erow eopen" data-open="'+esc(e.name)+'" role="button" tabindex="0"><i class="sw '+c+'"></i><div class="emain"><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
-      '<span>'+esc(e.type||"종류 없음")+' · '+mm(e.start)+(e.end!==e.start?"–"+mm(e.end):"")+(e.place?' · '+esc(e.place):'')+'</span>'+
+      '<span>'+esc(e.type||"종류 없음")+' · '+mdShort(e.start)+(e.end!==e.start?"–"+mdShort(e.end):"")+(e.place?' · '+esc(e.place):'')+'</span>'+
       '<div class="ebadges"><span class="ebadge">배정 '+(cnt[e.name]||0)+'칸</span>'+
         (sh ? '<span class="ebadge bad">부족 '+sh+'일</span>' : noNeed ? '' : '<span class="ebadge ok">인원 OK</span>')+
         (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+'</div>'+

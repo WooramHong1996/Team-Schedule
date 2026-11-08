@@ -30,7 +30,10 @@ function datesBetween(a,b){
   for(let k=iso(t); k<=b && out.length<62; t=new Date(t.getFullYear(),t.getMonth(),t.getDate()+1), k=iso(t)) out.push(k);
   return out;
 }
-const md = k => { const [yy,mo,dd]=k.split("-").map(Number); return mo+"/"+dd+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };
+const md = k => { const [yy,mo,dd]=k.split("-").map(Number); return mo+"/"+dd+" ("+DOW[new Date(yy,mo-1,dd).getDay()]+")"; };   // "11/7 (토)"
+const mdShort = k => Number(k.slice(5,7))+"/"+Number(k.slice(8,10));                                                                // "11/7"
+const mdhm = t => { const d = new Date(t); return (d.getMonth()+1)+"/"+d.getDate()+" "+pad(d.getHours())+":"+pad(d.getMinutes()); }; // "11/7 09:05"
+const telHref = s => "tel:"+String(s||"").replace(/[^0-9+]/g,"");
 
 /* 아이콘: 이모지 대신 선 아이콘(SVG). 글자색을 따라가고, 화면 읽기에서는 숨김 */
 const ICONS = {

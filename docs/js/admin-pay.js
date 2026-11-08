@@ -21,20 +21,23 @@ function renderPay(){
     if(a.shift==="야간") s.night++;
     s.days.add(a.date); });
   const ym = mStart.slice(0,7), closed = (DATA.closings||{})[ym];
-  const rows = closed ? closed.lines.map(l=>{
-    const s = {exh:l.exh,out:l.out,etc:l.etc,hr:l.hr,hours:l.hours,night:l.night,days:{size:l.days}};
-    const mb = {rateExh:l.rateExh,rateOut:l.rateOut,rateHour:l.rateHour}, miss = [];
-    if((s.out && mb.rateOut==null) || (s.exh && mb.rateExh==null)) miss.push("일당");
-    if(s.hr && mb.rateHour==null) miss.push("시급");
-    return {n:l.name,s,mb,pay:l.pay,miss,total:s.exh+s.out+s.etc+s.hr};
-  }).sort((a,b)=>b.pay-a.pay || b.total-a.total || a.n.localeCompare(b.n)) : [...st.entries()].map(([n,s])=>{
-    const mb = mem.get(n)||{};
+  // 근무는 있는데 일당·시급이 비어 있으면 표시
+  const missing = (s, mb) => {
     const miss = [];
     if((s.out && mb.rateOut==null) || (s.exh && mb.rateExh==null)) miss.push("일당");
     if(s.hr && mb.rateHour==null) miss.push("시급");
-    const pay = s.out*(mb.rateOut||0) + s.exh*(mb.rateExh||0) + s.hours*(mb.rateHour||0);
-    return {n,s,mb,pay,miss,total:s.exh+s.out+s.etc+s.hr};
-  }).sort((a,b)=>b.pay-a.pay || b.total-a.total || a.n.localeCompare(b.n));
+    return miss;
+  };
+  const row = (n, s, mb, pay) => ({n, s, mb, pay, miss: missing(s, mb), total: s.exh+s.out+s.etc+s.hr});
+  const rows = (closed
+    // 마감한 달: 마감할 때 저장한 금액 그대로
+    ? closed.lines.map(l=>row(l.name,
+        {exh:l.exh, out:l.out, etc:l.etc, hr:l.hr, hours:l.hours, night:l.night, days:{size:l.days}},
+        {rateExh:l.rateExh, rateOut:l.rateOut, rateHour:l.rateHour}, l.pay))
+    // 마감 전: 지금 배정·일당으로 계산
+    : [...st.entries()].map(([n,s])=>{ const mb = mem.get(n)||{};
+        return row(n, s, mb, s.out*(mb.rateOut||0) + s.exh*(mb.rateExh||0) + s.hours*(mb.rateHour||0)); })
+  ).sort((a,b)=>b.pay-a.pay || b.total-a.total || a.n.localeCompare(b.n));
   const sum = rows.reduce((t,r)=>({pay:t.pay+r.pay, exh:t.exh+r.s.exh, out:t.out+r.s.out, etc:t.etc+r.s.etc, hr:t.hr+r.s.hr, hours:t.hours+r.s.hours, ppl:t.ppl+(r.total?1:0)}), {pay:0,exh:0,out:0,etc:0,hr:0,hours:0,ppl:0});
   const noDay = rows.filter(r=>r.miss.includes("일당")).length, noHour = rows.filter(r=>r.miss.includes("시급")).length;
   $("p-sum").innerHTML =
@@ -42,13 +45,12 @@ function renderPay(){
     '<div class="kpi"><span>근무 인원</span><b>'+sum.ppl+'명</b></div>'+
     '<div class="kpi"><span>전시 / 외부</span><b>'+sum.exh+'회 / '+sum.out+'회</b></div>'+
     '<div class="kpi"><span>야간 시간제</span><b>'+sum.hr+'회 · '+hrs(sum.hours)+'</b></div>'+
-    (noDay?'<p class="warnline">일당이 비어 있는 사람이 '+noDay+'명 있어요. 팀원 관리 → 일당 또는 팀원 탭 D·E열을 채워 주세요.</p>':'')+
-    (noHour?'<p class="warnline">야간 시간제 근무가 있는데 시급이 비어 있는 사람이 '+noHour+'명 있어요. 팀원 탭 F열(시급)을 채워 주세요.</p>':'')+
-    (sum.etc?'<p class="warnline">종류(전시/외부)가 없는 행사 배정 '+sum.etc+'회는 급여 계산에서 빠졌어요. 행사 탭 B열을 확인해 주세요.</p>':'');
-  const when = closed ? new Date(closed.closedAt) : null;
+    (noDay?'<p class="warnline">일당이 비어 있는 사람이 '+noDay+'명 있어요. 팀원 관리에서 그 사람의 [일당]을 눌러 채워 주세요.</p>':'')+
+    (noHour?'<p class="warnline">야간 시간제 근무가 있는데 시급이 비어 있는 사람이 '+noHour+'명 있어요. 팀원 관리 → [일당]에서 시급을 채워 주세요.</p>':'')+
+    (sum.etc?'<p class="warnline">종류(전시/외부)가 없는 행사 배정 '+sum.etc+'회는 급여 계산에서 빠졌어요. 행사 관리 → 정보에서 종류를 골라 주세요.</p>':'');
   $("p-close").className = "pclose"+(closed?" closed":"");
   $("p-close").innerHTML = closed
-    ? '<span class="st">'+icon('lock',15)+' <b>'+(m+1)+'월 마감됨</b> · '+(when.getMonth()+1)+'/'+when.getDate()+' '+String(when.getHours()).padStart(2,"0")+':'+String(when.getMinutes()).padStart(2,"0")+(closed.by?' '+esc(closed.by):'')+
+    ? '<span class="st">'+icon('lock',15)+' <b>'+(m+1)+'월 마감됨</b> · '+mdhm(closed.closedAt)+(closed.by?' '+esc(closed.by):'')+
       '<br><small>마감할 때의 금액이 그대로 보여요. 이 달 배정은 잠겨 있어요.</small></span>'+
       '<button type="button" class="btn" data-xlsx>엑셀 내려받기</button><button type="button" class="btn sub" data-reopen>마감 취소</button>'
     : '<span class="st"><b>'+(m+1)+'월 마감 전</b><br><small>배정·일당이 바뀌면 금액도 바뀌어요. 정산이 끝나면 마감해 주세요.</small></span>'+

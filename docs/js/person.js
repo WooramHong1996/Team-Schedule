@@ -48,7 +48,6 @@ function setPerson(n, keepSelected){
   pin.value = person;
   document.querySelector(".who").classList.toggle("on", !!person);
   try { person ? localStorage.setItem("teamCalPerson", person) : localStorage.removeItem("teamCalPerson"); } catch(e){}
-  // 주소창에 ?name=이름 을 붙여 두면 그 주소를 즐겨찾기해서 바로 내 일정으로 열 수 있어요
   if(!keepSelected) selected = (view.getMonth()===now.getMonth()&&view.getFullYear()===now.getFullYear()) ? todayKey : firstEventDay(view.getFullYear(),view.getMonth());
   render();
 }

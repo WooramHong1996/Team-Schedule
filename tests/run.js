@@ -183,6 +183,17 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     T('xlsx built', await p.evaluate(() => window.__xlsx && window.__xlsx.f === '급여_2026-11_마감.xlsx' && window.__xlsx.s.length === 2 && window.__xlsx.s[1][1].length > 1));
     await p.click('#p-close [data-reopen]'); await p.waitForTimeout(400);
     T('reopened', await p.evaluate(() => !DATA.closings['2026-11'] && !document.querySelector('#p-close').classList.contains('closed')));
+    T('pay hints have no sheet-era wording', !/[A-Z]열|탭 [A-Z]/.test(await p.textContent('#p-sum')));
+    // 종류 없는 행사: 정보 탭에서 저장해도 '전시'로 바뀌지 않음 · 전화 링크는 숫자만
+    await p.evaluate(() => api.adminAddEvent({name:'종류없는 행사', type:'', start:'2026-11-20', end:'2026-11-20', contact:'010-1234-5678'}).then(r=>admApply(r.data), admFail)); await p.waitForTimeout(300);
+    await p.evaluate(() => { admTab('events'); openEvent('종류없는 행사', {tab:'info'}); }); await p.waitForTimeout(150);
+    T('no-type event shows 종류 없음', await p.evaluate(() => $('ed-body').querySelector('[data-f=type]').value === ''));
+    T('tel link digits only', await p.evaluate(() => $('ed-head').querySelector('a.eitel').getAttribute('href') === 'tel:01012345678'));
+    await p.click('#ed-body [data-esave]'); await p.waitForTimeout(400);
+    T('saving keeps no type', await p.evaluate(() => !DATA.events.find(e=>e.name==='종류없는 행사').type));
+    // 화면을 켜 둔 채 자정이 지나면 '오늘'이 새 날짜로
+    T('today refreshes after midnight', await p.evaluate(() => { todayKey = '2000-01-01'; selected = todayKey; const changed = refreshToday();
+      return changed && todayKey === iso(new Date()) && selected === todayKey && refreshToday() === false; }));
     await p.evaluate(() => admTab('cal'));
     await p.screenshot({ path: path.join(__dirname, 'admin.png') });
     T('no unexpected errors (admin)', errs.filter(e=>!/같은 이름|퇴사자 목록|지울 수 없어요/.test(e)).length === 0); if (errs.length) console.log(errs); }

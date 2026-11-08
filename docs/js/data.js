@@ -41,10 +41,18 @@ const others = it => ({day:it.day.filter(n=>n!==person), night:it.night.filter(n
 const who = arr => arr.map(n=> noCert.has(n) ? esc(n)+'<span class="miss">(미이수)</span>' : esc(n)).join(", ");
 const hasMiss = items => items.some(it=>[...it.day,...it.night].some(n=>noCert.has(n)));
 
-const now = new Date();
-const todayKey = iso(now);
+let now = new Date();
+let todayKey = iso(now);
 let view = new Date(now.getFullYear(), now.getMonth(), 1);
 let selected = todayKey;
+// 화면을 켜 둔 채 자정이 지나면 '오늘'을 새 날짜로 (오늘을 보고 있었으면 고른 날도 같이). 바뀌었으면 true
+function refreshToday(){
+  const k = iso(new Date());
+  if(k===todayKey) return false;
+  if(selected===todayKey) selected = k;
+  now = new Date(); todayKey = k;
+  return true;
+}
 
 function firstEventDay(y,m){
   const last = new Date(y,m+1,0).getDate();
@@ -53,10 +61,18 @@ function firstEventDay(y,m){
 }
 function showUpdated(){ document.getElementById("updated").textContent = DATA.updated+" 기준"; }
 // 다시 불러오기 (↻ 버튼, 5분마다 자동)
+let lastLoad = Date.now();
 function load(fresh){
   const up = document.getElementById("updated");
   if(fresh) up.textContent = "새로 불러오는 중…";
-  api.getData().then(d=>{ if(ADM.admin) admApply(d); else { setData(d); fillPeople(); showUpdated(); render(); } },
+  refreshToday();
+  api.getData().then(d=>{ lastLoad = Date.now(); if(ADM.admin) admApply(d); else { setData(d); fillPeople(); showUpdated(); render(); } },
     err=>{ up.textContent = "일정을 불러오지 못했어요. 새로고침해 주세요. ("+err.message+")"; });
 }
 document.getElementById("reload").onclick = ()=>load(true);
+// 폰을 다시 켰을 때: 5분 넘게 지났으면 새로 불러오고, 날짜가 바뀌었으면 '오늘'을 다시 그림
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden || !document.body.classList.contains("ready")) return;
+  if(Date.now()-lastLoad > 5*60*1000) load(false);
+  else if(refreshToday()) render();
+});

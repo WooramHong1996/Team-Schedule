@@ -68,4 +68,4 @@ tests/                     가짜 DB를 붙인 화면 테스트 (node tests/run.
 **3. 지킬 것** — 누르는 곳은 휴대폰에서 44px 이상, 글자 12px 이상, 글자와 배경 대비 4.5:1 이상.
 `.claude/skills/ui-ux-pro-max/` 스킬로 점검할 수 있어요.
 
-**4. 확인** — `node tests/run.js docs` (화면 기능 테스트 58개). 디자인만 바꿨으면 모두 통과해야 해요.
+**4. 확인** — `node tests/run.js docs` (화면 기능 테스트 63개). 디자인만 바꿨으면 모두 통과해야 해요.

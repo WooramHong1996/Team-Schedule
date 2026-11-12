@@ -5,9 +5,9 @@ const MOCK = fs.readFileSync(path.join(__dirname, '..', 'docs', 'preview', 'mock
 
 function seed(user) {
   const members = [
-    { id: 1, name: '홍우람', cert: '있음', rate_out: 110000, rate_exh: 115000, rate_hour: 10000, user_id: 'U-admin', active: true, sort_order: 1 },
-    { id: 2, name: '박진원', cert: '없음', rate_out: null, rate_exh: null, rate_hour: 10000, user_id: 'U-park', active: true, sort_order: 2 },
-    { id: 3, name: '오한솔', cert: '있음', rate_out: null, rate_exh: null, rate_hour: 10000, user_id: null, active: true, sort_order: 3 },
+    { id: 1, name: '홍우람', cert: '있음', user_id: 'U-admin', active: true, sort_order: 1 },
+    { id: 2, name: '박진원', cert: '없음', user_id: 'U-park', active: true, sort_order: 2 },
+    { id: 3, name: '오한솔', cert: '있음', user_id: null, active: true, sort_order: 3 },
   ];
   const events = [
     { id: 11, name: '수원 메쎄 입주자박람회', type: '전시', start_date: '2026-11-03', end_date: '2026-11-05', place: '수원', manager: '김담당', contact: '010-1234-5678', memo: '내부메모 비밀', notice: '06:30 B게이트 집합 · 검정 정장', need_day: 2, need_night: null },
@@ -21,7 +21,6 @@ function seed(user) {
     { id: 105, work_date: '2026-10-01', member_id: 2, shift: '주간', event_id: 12 },
   ];
   return { user, tables: { members, events, assignments, night_plans: [], need_overrides: [], admins: [{ user_id: 'U-admin' }],
-    payroll_closings: [], payroll_lines: [],
     link_requests: [{ user_id: 'U-new', display_name: '한솔', claimed_name: '오한솔', requested_at: '2026-11-04T01:00:00Z' }] } };
 }
 
@@ -34,7 +33,6 @@ async function page(browser, user) {
   p.on('dialog', d => d.accept());
   await p.route('**/*', async route => {
     const u = route.request().url();
-    if (u.includes('xlsx.full.min.js')) return route.fulfill({ contentType: 'application/javascript', body: 'window.XLSX={utils:{book_new:()=>({s:[]}),aoa_to_sheet:a=>({a}),book_append_sheet:(w,s,n)=>w.s.push([n,s.a])},writeFile:(w,f)=>{window.__xlsx={f,s:w.s};}};' });
     if (u.includes('supabase-js')) return route.fulfill({ contentType: 'application/javascript', body: 'window.__MOCK=' + JSON.stringify(seed(user)) + ';\n' + MOCK });
     if (u.startsWith('http://app/')) {
       const f = path.join(DOCS, u.slice('http://app/'.length).split('?')[0] || 'index.html');
@@ -144,9 +142,10 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     T('designated admin', await p.evaluate(() => DATA.members.find(m => m.name === '오한솔A').isAdmin));
     await p.click('.mrow[data-n="오한솔A"] [data-admin="0"]'); await p.waitForTimeout(400);
     T('revoked admin', await p.evaluate(() => !DATA.members.find(m => m.name === '오한솔A').isAdmin && DATA.members.find(m => m.name === '홍우람').isAdmin));
-    // 팀원 추가 기본 일당
+    // 팀원 추가 (일당 칸 없음)
     await p.fill('#m-form [name=name]', '새사람'); await p.click('#m-form button[type=submit]'); await p.waitForTimeout(400);
-    T('member add defaults', await p.evaluate(() => { const m = DATA.members.find(x => x.name === '새사람'); return m && m.rateExh === 100000 && m.rateOut === 90000 && m.rateHour === 10000; }));
+    T('member added', await p.evaluate(() => DATA.members.some(x => x.name === '새사람')));
+    T('member add has no wage fields', await p.evaluate(() => !document.querySelector('#m-form [name^=rate]') && !('rateExh' in DATA.members[0])));
     // 중복 이름
     await p.fill('#m-form [name=name]', '새사람'); await p.click('#m-form button[type=submit]'); await p.waitForTimeout(400);
     T('duplicate name message', (await p.textContent('#toast')).includes('같은 이름'));
@@ -166,24 +165,16 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     await p.click('[data-open="구리 총회"]'); await p.click('[data-etab="info"]'); await p.waitForTimeout(100);
     await p.click('#ed-body [data-del]'); await p.waitForTimeout(400);
     T('event with past record not deleted', (await p.textContent('#toast')).includes('지울 수 없어요') && await p.evaluate(() => DATA.events.some(e=>e.name==='구리 총회')));
-    // 급여 화면
-    await p.evaluate(() => admTab('people')); await p.waitForTimeout(200);
-    T('pay table renders', (await p.textContent('#p-table')).includes('합계'));
-    // 월 마감 · 엑셀
-    await p.evaluate(() => { view = new Date(2026, 10, 1); admTab('people'); }); await p.waitForTimeout(150);
-    const before = await p.evaluate(() => PAY.rows.reduce((a,r)=>a+r.pay,0));
-    await p.click('#p-close [data-close]'); await p.waitForTimeout(500);
-    T('month closed', await p.evaluate(() => !!DATA.closings['2026-11'] && document.querySelector('#p-close').classList.contains('closed')));
-    T('closed total equals live total', await p.evaluate(b => DATA.closings['2026-11'].total === b, before));
-    await p.evaluate(() => api.adminSetRates('홍우람', '1', '1', '1').then(r=>admApply(r.data), admFail)); await p.waitForTimeout(400);
-    T('closed month keeps old pay after rate change', await p.evaluate(b => PAY.rows.reduce((a,r)=>a+r.pay,0) === b, before));
-    await p.evaluate(() => assignOne('구리 총회', ['2026-11-04'], '박진원', 1, false, false)); await p.waitForTimeout(400);
-    T('closed month locks assignments', (await p.textContent('#toast')).includes('마감된 달'));
-    await p.click('#p-close [data-xlsx]'); await p.waitForTimeout(400);
-    T('xlsx built', await p.evaluate(() => window.__xlsx && window.__xlsx.f === '급여_2026-11_마감.xlsx' && window.__xlsx.s.length === 2 && window.__xlsx.s[1][1].length > 1));
-    await p.click('#p-close [data-reopen]'); await p.waitForTimeout(400);
-    T('reopened', await p.evaluate(() => !DATA.closings['2026-11'] && !document.querySelector('#p-close').classList.contains('closed')));
-    T('pay hints have no sheet-era wording', !/[A-Z]열|탭 [A-Z]/.test(await p.textContent('#p-sum')));
+    // 근무 일수 화면 (급여 기능 삭제)
+    await p.evaluate(() => { view = new Date(2026, 10, 1); admTab('people'); }); await p.waitForTimeout(200);
+    T('stats table renders', (await p.textContent('#p-table')).includes('합계'));
+    T('stats counts work days', await p.evaluate(() => [...document.querySelectorAll('#p-table tbody tr')].every(tr => {
+      const n = tr.cells[0].firstChild.textContent.trim(), mine = DATA.assign.filter(a => a.name === n && a.date.startsWith('2026-11'));
+      return tr.cells[1].textContent === new Set(mine.map(a => a.date)).size + '일' && tr.cells[2].textContent === mine.filter(a => a.shift !== '야간').length + '회'
+        && tr.cells[3].textContent === mine.filter(a => a.shift === '야간').length + '회'; })));
+    T('no wage anywhere in admin screens', await p.evaluate(() => { const t = ['adm-people','adm-members','adm-events','daypanel'].map(id=>document.getElementById(id).textContent).join(' ');
+      return !/일당|급여|시급|월급|마감|[0-9],[0-9]{3}원/.test(t) && !document.querySelector('[data-xlsx],[data-close],[data-rate],#p-close'); }));
+    T('api has no pay functions', await p.evaluate(() => !api.closeMonth && !api.reopenMonth && !api.adminSetRates));
     // 종류 없는 행사: 정보 탭에서 저장해도 '전시'로 바뀌지 않음 · 전화 링크는 숫자만
     await p.evaluate(() => api.adminAddEvent({name:'종류없는 행사', type:'', start:'2026-11-20', end:'2026-11-20', contact:'010-1234-5678'}).then(r=>admApply(r.data), admFail)); await p.waitForTimeout(300);
     await p.evaluate(() => { admTab('events'); openEvent('종류없는 행사', {tab:'info'}); }); await p.waitForTimeout(150);

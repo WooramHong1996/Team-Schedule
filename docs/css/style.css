@@ -20,7 +20,7 @@
   /* 알림 · 상태 */
   --warn:#b42828; --warn-ink:#ffffff;           /* 부족 · 경고 · 실패 */
   --ok-ink:#14532d; --over-ink:#7a3e00;         /* 인원 OK · 인원 초과 */
-  --lock:#1f3864; --lock-ink:#ffffff;           /* 급여 마감 · 간부 표시 */
+  --lock:#1f3864; --lock-ink:#ffffff;           /* 간부 표시 */
   --linked-line:#3b8a3b; --linked-ink:#2d6f2d;  /* 카카오 연결됨 */
   --kakao:#FEE500; --kakao-ink:#191600;         /* 카카오 (브랜드 색이라 다크 모드에서도 그대로) */
   /* 행사 종류 색 (전시=blue, 외부=orange, 기타=green — js/data.js 의 TYPE_CLS) */
@@ -331,7 +331,6 @@ body.admin .ev.jump::after{content:"관리 ›";margin-left:auto;font-size:.75re
 .ptable tfoot td{font-weight:700;border-top:2px solid var(--fg);border-bottom:0}
 .ptable tr.idle td{color:var(--muted)}
 .ptable .sub{display:block;font-size:.7rem;color:var(--muted);font-weight:400}
-.ptable .sub.warn{color:var(--warn)}
 .tscroll{overflow-x:auto}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .kpi b{white-space:nowrap;font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:1.15rem;font-weight:800}
@@ -364,10 +363,6 @@ body.member .who .combo{display:none}
 body.admin .brand .lo{display:none}
 .mrow .klink{font-size:.75rem;padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
 .mrow .klink.on{border-color:var(--linked-line);color:var(--linked-ink)}
-.pclose{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-in);background:var(--surface)}
-.pclose .st{flex:1 1 220px;font-size:.9rem;line-height:1.5}
-.pclose.closed{border-color:var(--lock);background:rgba(31,56,100,.06)}
-.lockb{font-size:.72rem;padding:1px 6px;border-radius:6px;background:var(--lock);color:var(--lock-ink);margin-left:4px;vertical-align:middle}
 .mrow .klink.adm{border-color:var(--lock);background:var(--lock);color:var(--lock-ink)}
 #m-reqs .mrow{border-left:3px solid var(--kakao);padding-left:8px}
 #m-reqs .kav{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--kakao);color:var(--kakao-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}

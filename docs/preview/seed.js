@@ -11,10 +11,9 @@
   const names = ["홍우람", "박진원", "오한솔", "김도윤", "이서준", "최민재", "정하은", "강지호", "윤서연", "임태현"];
   const members = names.map((n, i) => ({
     id: i + 1, name: n, cert: (i === 1 || i === 6) ? "없음" : "있음", note: null,
-    rate_exh: i ? 100000 : 115000, rate_out: i ? 90000 : 110000, rate_hour: 10000,
     user_id: i === 0 ? "U-admin" : i === 1 ? "U-park" : null, active: true, retired_at: null, sort_order: i + 1
   }));
-  members.push({ id: 99, name: "송퇴사", cert: "있음", rate_exh: 100000, rate_out: 90000, rate_hour: 10000, user_id: null, active: false, retired_at: day(1), sort_order: 99 });
+  members.push({ id: 99, name: "송퇴사", cert: "있음", user_id: null, active: false, retired_at: day(1), sort_order: 99 });
 
   const ev = (id, name, type, a, b, o) => Object.assign({ id, name, type, start_date: a, end_date: b, place: null, manager: null, contact: null, memo: null, notice: null, need_day: null, need_night: null }, o || {});
   const events = [
@@ -45,7 +44,6 @@
     tables: {
       members, events, assignments, night_plans, need_overrides: [],
       admins: [{ user_id: "U-admin" }],
-      payroll_closings: [], payroll_lines: [],
       link_requests: [{ user_id: "U-new", display_name: "한솔이", claimed_name: "오한솔", requested_at: new Date().toISOString() }]
     }
   };

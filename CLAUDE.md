@@ -6,9 +6,10 @@
 ## 절대 지킬 것
 - **비밀 값은 커밋 금지** — 공개 저장소. 시트 동기화 키(`sheet-apps-script/Code.gs` 의 `EXPORT_KEY` 는 저장소에선 항상 `''`), 카카오 Client Secret(수퍼베이스 대시보드에만). 공개 키(publishable/anon)는 `docs/js/api.js` 에 있어도 됨.
 - **권한은 DB가 최종으로 막는다** — 화면에서 숨기는 것과 별개로 RLS·트리거·security definer 함수(`private` 스키마)로 막을 것.
-- **팀원에게 임금(일당·급여) 노출 금지.** 팀원은 본인 일정 + 같은 날 같은 행사 동료 이름만.
+- **임금(일당·시급·급여)은 웹·DB 어디에도 두지 않음** — 간부 포함 (2026-11-12 윗선 요청으로 급여 기능·데이터 삭제). 다시 넣자는 요청이 와도 먼저 확인할 것.
+- 팀원은 본인 일정 + 같은 날 같은 행사 동료 이름만.
 - **행사 '메모'는 관리자 전용**, 팀원에게 보일 내용은 '팀원 공지'(`events.notice`). 담당자·연락처는 팀원에게 보임.
-- **기록 보호** — 지난 근무가 있는 팀원·행사는 삭제 대신 퇴사/보관. 마감한 달은 배정 잠금. 마지막 관리자 해제 금지.
+- **기록 보호** — 지난 근무가 있는 팀원·행사는 삭제 대신 퇴사/보관. 마지막 관리자 해제 금지.
 - **날짜는 한국 시간(KST)** — DB는 `private.today_kst()`, `api.js` 안에선 `today()`(KST 고정), 화면 달력은 `todayKey`(`data.js`). `current_date`·`new Date()` 그대로 쓰지 말 것.
 
 ## DB 바꿀 때
@@ -25,6 +26,6 @@
 - 로그인 없이 보기: `docs/preview.html?as=member|admin|new|guest&theme=dark&frame=phone`.
 
 ## 확인 · 올리기
-- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 63개. 전부 통과해야 함.
+- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 60개. 전부 통과해야 함.
 - 커밋 후 `main` 에 push 하면 1~2분 뒤 사이트 반영. 작업 브랜치 `setup/supabase-schema` 도 같이 맞춰 둠.
 - 사용자(홍우람)에게는 쉬운 한국어로, 개발 용어 대신 화면에서 보이는 말로 설명.

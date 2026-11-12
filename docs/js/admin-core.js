@@ -60,7 +60,7 @@ function admDayExtra(it){
     needLine(selected, it)+
     '<span class="k">주간</span><span class="v">'+names(it.day)+'</span>'+
     '<span class="k">야간</span><span class="v">'+names(it.night)+'</span>'+
-    ((it.night.length || planned) ? '<span class="nh">'+(planned?'야간 예정':'야간')+' · '+(h?'<b>'+h+'시간</b> × 각자 시급':'일당')+(planned&&!it.night.length?' · <span class="miss">미배정</span>':'')+'</span>' : '')+
+    ((it.night.length || planned) ? '<span class="nh">'+(planned?'야간 예정':'야간')+(h?' · '+'<b>'+h+'시간</b>':'')+(planned&&!it.night.length?' · <span class="miss">미배정</span>':'')+'</span>' : '')+
     (e.place?'<span class="k">장소</span><span class="v">'+esc(e.place)+'</span>':'')+
     (e.manager||e.contact?'<span class="k">담당</span><span class="v">'+esc(e.manager||"")+(e.contact?' · <a class="eitel" href="'+esc(telHref(e.contact))+'">'+esc(e.contact)+'</a>':'')+'</span>':'')+
     (e.memo?'<span class="k">메모</span><span class="v memo">'+esc(e.memo)+'</span>':'')+'</div>';
@@ -71,5 +71,5 @@ function admRenderPanels(){
   if(!ADM.admin) return;
   admRenderMembers();
   renderEventList();
-  renderPay();
+  renderStats();
 }

@@ -7,7 +7,7 @@ function nightRowsHTML(start, end, cur){
   if(!ds.length) return '<p class="empty">시작일·종료일을 고르면 날짜가 나와요.</p>';
   return ds.map(d=>{ const on = d in cur, h = cur[d]||"";
     return '<div class="nrow"><input type="checkbox" data-d="'+d+'" aria-label="'+md(d)+' 야간"'+(on?' checked':'')+'>'+
-      '<span>'+md(d)+'</span><input type="number" data-h="'+d+'" min="0" max="24" step="0.5" inputmode="decimal" placeholder="일당 · 시간 입력" value="'+h+'"'+(on?'':' disabled')+'></div>'; }).join("");
+      '<span>'+md(d)+'</span><input type="number" data-h="'+d+'" min="0" max="24" step="0.5" inputmode="decimal" placeholder="시간 (선택)" value="'+h+'"'+(on?'':' disabled')+'></div>'; }).join("");
 }
 function readNights(box){ return [...box.querySelectorAll("input[data-d]:checked")].map(c=>({date:c.dataset.d, hours: box.querySelector('[data-h="'+c.dataset.d+'"]').value})); }
 function wireNightBox(box){
@@ -127,7 +127,6 @@ function renderEventDetail(){
   $("e-listview").hidden = true; $("e-detail").hidden = false;
   const cnt = DATA.assign.filter(a=>a.event===name).length, sh = shortDays(name);
   const nn = Object.keys(nightsOf(name)).length;
-  const closed = datesBetween(ev.start, ev.end).some(d=>(DATA.closings||{})[d.slice(0,7)]);
   $("ed-head").innerHTML =
     '<h2><i class="sw '+clsFor(ev.type)+'"></i>'+esc(ev.name)+'</h2>'+
     '<span class="meta">'+esc(ev.type||"종류 없음")+' · '+mdShort(ev.start)+(ev.end!==ev.start?" – "+mdShort(ev.end):"")+' ('+datesBetween(ev.start, ev.end).length+'일)'+(ev.place?' · '+esc(ev.place):'')+'</span>'+
@@ -136,7 +135,7 @@ function renderEventDetail(){
     (ev.memo ? '<span class="memo"><b>메모</b> '+esc(ev.memo)+'</span>' : '')+
     '<div class="ebadges"><span class="ebadge">배정 '+cnt+'칸</span>'+
       (sh ? '<span class="ebadge bad">인원 부족 '+sh+'일</span>' : (ev.needDay!=null||ev.needNight!=null ? '<span class="ebadge ok">필요 인원 OK</span>' : '<span class="ebadge">필요 인원 미입력</span>'))+
-      (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+(closed ? '<span class="ebadge">급여 마감된 날 있음</span>' : '')+'</div>';
+      (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+'</div>';
   const order = evOrder(), k = order.indexOf(name);
   $("ed-prev").disabled = k<=0; $("ed-next").disabled = k<0 || k>=order.length-1;
   document.querySelectorAll("[data-etab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.etab===ADM.evTab ? "true":"false"));
@@ -165,7 +164,7 @@ function renderEventDetail(){
   box.dataset.mode = "extra";
   const ov = DATA.needOv||{};
   box.innerHTML =
-    '<h3>야간 날짜</h3><p class="foot tight">야간이 있는 날만 체크 · 시간제면 시간 입력 (비우면 일당)</p>'+
+    '<h3>야간 날짜</h3><p class="foot tight">야간이 있는 날만 체크 · 근무 시간은 적고 싶을 때만</p>'+
     '<div class="nights">'+nightRowsHTML(ev.start, ev.end, nightsOf(name))+'</div>'+
     '<div class="actions"><button type="button" class="btn" data-nsave>야간 날짜 저장</button></div>'+
     '<h3>날짜별 필요 인원</h3><p class="foot tight">비워 두면 기본(주간 '+(ev.needDay??"-")+' · 야간 '+(ev.needNight??"-")+')을 써요. 그날만 다르면 숫자를 적으세요.</p>'+
@@ -218,7 +217,7 @@ $("e-detail").addEventListener("click", e=>{
     return;
   }
   if(!e.target.closest("[data-del]")) return;
-  if(!confirm("「"+name+"」 행사를 지울까요?\n(이미 지난 근무 기록이 있는 행사는 급여 기록 보호를 위해 지울 수 없어요)")) return;
+  if(!confirm("「"+name+"」 행사를 지울까요?\n(이미 지난 근무 기록이 있는 행사는 기록 보호를 위해 지울 수 없어요)")) return;
   const go = clear => api.adminDeleteEvent(name, clear).then(r=>{
       if(!r.ok && r.assigned){ busy(false);
         if(confirm("이 행사에 배정된 칸이 "+r.assigned+"개 있어요.\n배정까지 모두 지우고 행사를 삭제할까요?")) { busy(true); go(true); }
@@ -253,11 +252,11 @@ function renderAssignBox(box, name){
       const g = byDay[d]||{주간:[],야간:[]}, key = d+'|'+name, planned = key in NHm, h = NHm[key];
       const showNight = planned || g.야간.length || open.has(key);
       const it = {ev, day:g.주간, night:g.야간};
-      return '<div class="ad-day'+(d===todayKey?' today':'')+'" data-day="'+d+'"><div class="ad-head">'+md(d)+((DATA.closings||{})[d.slice(0,7)]?'<span class="lockb">마감</span>':'')+' '+needLine(d, it)+'</div>'+
+      return '<div class="ad-day'+(d===todayKey?' today':'')+'" data-day="'+d+'"><div class="ad-head">'+md(d)+' '+needLine(d, it)+'</div>'+
         '<div class="ad-row"><span class="k">주간</span><span class="ad-names">'+g.주간.map(n=>chip(n,d,0)).join("")+adder(d,0)+'</span></div>'+
         (showNight
           ? '<div class="ad-row night"><span class="k">야간</span><span class="ad-names">'+g.야간.map(n=>chip(n,d,1)).join("")+adder(d,1)+
-              (planned?'<span class="count tight">'+(h?h+'시간제':'일당')+'</span>':'')+'</span></div>'
+              (planned&&h?'<span class="count tight">'+h+'시간</span>':'')+'</span></div>'
           : '<div><button type="button" class="ad-more" data-anight="'+esc(key)+'">+ 야간</button></div>')+
       '</div>'; }).join("");
 }

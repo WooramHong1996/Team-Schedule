@@ -56,10 +56,10 @@ function syncFromWeb() {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    // 팀원: A 이름 | B 이수증 | C 비고 | D 일당(외부) | E 일당(전시) | F 시급 | G 상태
+    // 팀원: A 이름 | B 이수증 | C 비고 | D~F (예전 일당·시급 칸 — 급여 기능 삭제로 비움) | G 상태
     const m = ss.getSheetByName('팀원');
-    m.getRange(1, 7).setValue('상태');
-    writeBlock_(m, 1, d.members.map(x => [x.name, x.cert || '', x.note || '', nz_(x.rate_out), nz_(x.rate_exh), nz_(x.rate_hour), x.active ? '' : '퇴사']), 7);
+    m.getRange(1, 4, 1, 4).setValues([['', '', '', '상태']]);
+    writeBlock_(m, 1, d.members.map(x => [x.name, x.cert || '', x.note || '', '', '', '', x.active ? '' : '퇴사']), 7);
 
     // 행사: E·F·I 열은 수식이라 건드리지 않음
     const e = ss.getSheetByName('행사');

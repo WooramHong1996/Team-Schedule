@@ -8,7 +8,6 @@
 (function () {
   const SUPABASE_URL = 'https://wnqssbtqbaisgtmpitve.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_0R29XxwnzFC93FrTeROjNA_EAhYGkbs';
-  const DEFAULT_RATE = { exh: 100000, out: 90000, hour: 10000 };
   const SHIFT = ['주간', '야간'];
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -92,15 +91,13 @@
   /* ---------------- 데이터 읽기 ---------------- */
   /* 관리자 데이터는 표별로 저장해 두고, 바뀐 표만 다시 읽음 (저장할 때마다 전체를 받지 않게) */
   const TABLES = {
-    members: () => fetchAll('members', 'id,name,cert,note,rate_out,rate_exh,rate_hour,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
+    members: () => fetchAll('members', 'id,name,cert,note,user_id,active,retired_at,sort_order', q => q.order('sort_order').order('id')),
     events: () => fetchAll('events', '*', q => q.order('start_date').order('id')),
     assigns: () => fetchAll('assignments', 'work_date,member_id,shift,event_id', q => q.order('work_date').order('id')),
     nights: () => fetchAll('night_plans', 'work_date,event_id,hours'),
     needs: () => fetchAll('need_overrides', 'work_date,event_id,need_day,need_night'),
     reqs: () => fetchAll('link_requests', 'user_id,display_name,claimed_name,avatar_url,requested_at', q => q.order('requested_at')),
-    admins: () => fetchAll('admins', 'user_id'),
-    closes: () => fetchAll('payroll_closings', 'month,closed_at,closed_by_name,total'),
-    lines: () => fetchAll('payroll_lines', '*')
+    admins: () => fetchAll('admins', 'user_id')
   };
   const C = {};   // 표별 저장본
   async function buildAdmin(parts) {
@@ -114,12 +111,7 @@
     if (C.assigns.some(a => !mIds.has(a.member_id))) stale.push('members');
     if (C.assigns.some(a => !eIds.has(a.event_id)) || C.nights.concat(C.needs).some(n => !eIds.has(n.event_id))) stale.push('events');
     if (stale.length) { const more = await Promise.all(stale.map(k => TABLES[k]())); stale.forEach((k, i) => { C[k] = more[i]; }); }
-    const { members, events, assigns, nights, needs, reqs, admins, closes, lines } = C;
-    const closings = {};
-    closes.forEach(c => { closings[c.month.slice(0, 7)] = { closedAt: c.closed_at, by: c.closed_by_name || '', total: Number(c.total), lines: [] }; });
-    lines.forEach(l => { const c = closings[l.month.slice(0, 7)]; if (c) c.lines.push({
-      name: l.member_name, days: l.days, exh: l.exh_count, out: l.out_count, etc: l.etc_count, hr: l.hour_count, hours: Number(l.hours),
-      night: l.night_count, rateExh: l.rate_exh, rateOut: l.rate_out, rateHour: l.rate_hour, pay: Number(l.pay) }); });
+    const { members, events, assigns, nights, needs, reqs, admins } = C;
     const adminSet = new Set(admins.map(a => a.user_id));
     S.members = members; S.events = events;
     const mName = new Map(members.map(m => [m.id, m.name]));
@@ -131,11 +123,11 @@
       updated: stamp(), role: 'admin', me: S.me ? S.me.name : '',
       members: members.filter(m => m.active).map(m => ({
         name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '', note: m.note || '',
-        rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour, linked: !!m.user_id,
+        linked: !!m.user_id,
         isAdmin: !!(m.user_id && adminSet.has(m.user_id)), isMe: !!(S.user && m.user_id === S.user.id)
       })),
       formerMembers: members.filter(m => !m.active).map(m => ({
-        name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '', rateOut: m.rate_out, rateExh: m.rate_exh, rateHour: m.rate_hour,
+        name: m.name, cert: m.cert !== '없음', certRaw: m.cert || '',
         retiredAt: m.retired_at ? String(m.retired_at).slice(0, 10) : ''
       })),
       events: events.map(e => ({
@@ -143,7 +135,7 @@
         manager: e.manager || '', contact: e.contact || '', memo: e.memo || '', notice: e.notice || '', needDay: e.need_day, needNight: e.need_night
       })),
       assign: assigns.map(a => [a.work_date, mName.get(a.member_id), a.shift === '야간' ? 1 : 0, eName.get(a.event_id)]),
-      nightHours, needOv, closings,
+      nightHours, needOv,
       linkRequests: reqs.map(r => ({ userId: r.user_id, nickname: r.display_name || '', claimed: r.claimed_name || '', avatar: r.avatar_url || '', at: r.requested_at }))
     };
   }
@@ -255,7 +247,7 @@
     const ev = await eventRow(name);
     const { count: past, error: pe } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id).lt('work_date', today());
     fail(pe);
-    if (past) throw new Error('「' + name + '」에는 이미 지난 근무 기록이 ' + past + '칸 있어서 지울 수 없어요. (급여 기록 보호) 앞으로의 배정만 빼려면 인원 배정에서 빼 주세요.');
+    if (past) throw new Error('「' + name + '」에는 이미 지난 근무 기록이 ' + past + '칸 있어서 지울 수 없어요. (기록 보호) 앞으로의 배정만 빼려면 인원 배정에서 빼 주세요.');
     const { count, error: ce } = await sb.from('assignments').select('id', { count: 'exact', head: true }).eq('event_id', ev.id);
     fail(ce);
     if (count && !clear) return { ok: false, assigned: count };
@@ -299,12 +291,10 @@
     const name = String(f.name || '').trim();
     if (!name) throw new Error('이름을 적어 주세요.');
     const { data: last } = await sb.from('members').select('sort_order').order('sort_order', { ascending: false }).limit(1);
-    const pick = (v, d) => { const x = num(v); return x == null ? d : x; };
     const { data: same } = await sb.from('members').select('active').eq('name', name).maybeSingle();
     if (same && !same.active) throw new Error('퇴사자 목록에 같은 이름(' + name + ')이 있어요. 같은 사람이면 퇴사자 목록에서 "복귀"를 눌러 주세요. 다른 사람이면 이름 뒤에 숫자를 붙여 주세요.');
     const { error } = await sb.from('members').insert({
       name, cert: ['있음', '없음'].includes(f.cert) ? f.cert : null,
-      rate_exh: pick(f.rateExh, DEFAULT_RATE.exh), rate_out: pick(f.rateOut, DEFAULT_RATE.out), rate_hour: pick(f.rateHour, DEFAULT_RATE.hour),
       sort_order: ((last && last[0] && last[0].sort_order) || 0) + 1
     });
     fail(error, '같은 이름이 이미 있어요: ' + name + ' (동명이인이면 이름 뒤에 숫자를 붙여 주세요)');
@@ -312,11 +302,6 @@
   }
   async function adminSetCert(name, v) {
     const { error } = await sb.from('members').update({ cert: ['있음', '없음'].includes(v) ? v : null }).eq('id', await memberId(name));
-    fail(error);
-    return done(null, ['members']);
-  }
-  async function adminSetRates(name, out, exh, hour) {
-    const { error } = await sb.from('members').update({ rate_out: num(out), rate_exh: num(exh), rate_hour: num(hour) }).eq('id', await memberId(name));
     fail(error);
     return done(null, ['members']);
   }
@@ -339,7 +324,7 @@
     fail(error);
     return done(null, ['members']);
   }
-  /* 퇴사 처리: 지난 기록·급여는 그대로, 오늘 이후 배정만 빼고 명단·로그인에서 제외 */
+  /* 퇴사 처리: 지난 기록은 그대로, 오늘 이후 배정만 빼고 명단·로그인에서 제외 */
   async function adminRetireMember(name, confirmFuture) {
     const { data: m, error: me } = await sb.from('members').select('id,user_id').eq('name', name).maybeSingle();
     fail(me);
@@ -400,23 +385,11 @@
     return done(null, ['admins']);
   }
 
-  /* 급여 월 마감: ym = 'YYYY-MM' */
-  async function closeMonth(ym) {
-    const { data, error } = await sb.rpc('close_month', { p_month: ym + '-01' });
-    fail(error);
-    return done({ total: Number(data) }, ['closes', 'lines']);
-  }
-  async function reopenMonth(ym) {
-    const { error } = await sb.from('payroll_closings').delete().eq('month', ym + '-01');
-    fail(error);
-    return done(null, ['closes', 'lines']);
-  }
-
   const API = {
     getData,
     adminSetAssign, adminAddEvent, adminUpdateEvent, adminDeleteEvent, adminSetEventNeeds, adminSetEventNights, adminSetNightHours,
-    adminAddMember, adminSetCert, adminSetRates, adminRenameMember, adminDeleteMember, adminRetireMember, adminRestoreMember,
-    adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin, closeMonth, reopenMonth
+    adminAddMember, adminSetCert, adminRenameMember, adminDeleteMember, adminRetireMember, adminRestoreMember,
+    adminLinkMember, adminUnlinkMember, adminDismissRequest, adminSetAdmin
   };
 
   window.api = API;

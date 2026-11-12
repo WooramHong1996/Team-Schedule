@@ -1,6 +1,5 @@
-/* 팀원 관리: 추가 · 이수증 · 일당 · 이름 · 카카오 연결 · 간부 · 퇴사 */
+/* 팀원 관리: 추가 · 이수증 · 이름 · 카카오 연결 · 간부 · 퇴사 */
 // ---------- 팀원 관리 ----------
-const wonS = v => v==null ? '<span class="miss">미입력</span>' : (v%10000===0 ? (v/10000)+'만' : Math.round(v).toLocaleString("ko-KR"))+'원';
 // 금액 칸: 숫자만 남기고 천 단위 쉼표
 document.querySelectorAll("input.won").forEach(inp=>inp.addEventListener("input", ()=>{
   const d = inp.value.replace(/[^0-9]/g,""); inp.value = d ? Number(d).toLocaleString("ko-KR") : ""; }));
@@ -19,12 +18,11 @@ function admRenderMembers(){
   const list = DATA.members.filter(m=>matchName(m.name,q));
   $("m-list").innerHTML = list.map(m=>{ const c = m.certRaw||"";
     return '<div class="mrow" data-n="'+esc(m.name)+'"><span class="mn">'+hl(m.name,q)+'</span>'+
-      '<span class="ma">배정 '+(cnt[m.name]||0)+'칸 · 전시 '+wonS(m.rateExh)+' / 외부 '+wonS(m.rateOut)+' / 시급 '+wonS(m.rateHour)+'</span>'+
+      '<span class="ma">배정 '+(cnt[m.name]||0)+'칸</span>'+
       (m.linked ? '<button type="button" class="lnk klink on" data-unlink title="카카오 연결 해제">카카오 연결됨 ×</button>'+
         '<button type="button" class="lnk klink'+(m.isAdmin?' adm':'')+'" data-admin="'+(m.isAdmin?0:1)+'">'+(m.isAdmin?'간부(관리자) '+icon('check',13):'간부 지정')+'</button>' : '<span class="klink">카카오 미연결</span>')+
       '<label><span class="sr">이수증 </span><select data-cert aria-label="'+esc(m.name)+' 이수증">'+
         [["","이수증 모름"],["있음","이수증 있음"],["없음","이수증 없음"]].map(([v,t])=>'<option value="'+v+'"'+(v===c?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
-      '<button type="button" class="lnk" data-rate>일당</button>'+
       '<button type="button" class="lnk" data-rename>이름 고치기</button>'+
       '<button type="button" class="danger" data-retire>퇴사 처리</button></div>'; }).join("")
     || '<p class="empty">'+(q?'맞는 이름이 없어요.':'팀원이 없어요.')+'</p>';
@@ -43,8 +41,7 @@ $("m-form").addEventListener("submit", ev=>{
   const f = Object.fromEntries(new FormData($("m-form")).entries());
   busy(true);
   api.adminAddMember(f).then(r=>{ busy(false); $("m-form").reset(); admApply(r.data);
-      const mb = r.data.members.find(x=>x.name===f.name.trim())||{};
-      toast(f.name+" 님 추가 · 전시 "+(mb.rateExh||0).toLocaleString("ko-KR")+"원 / 외부 "+(mb.rateOut||0).toLocaleString("ko-KR")+"원 / 시급 "+(mb.rateHour||0).toLocaleString("ko-KR")+"원"); $("m-form").elements.name.focus(); }, admFail);
+      toast(f.name.trim()+" 님을 추가했어요."); $("m-form").elements.name.focus(); }, admFail);
 });
 $("m-list").addEventListener("change", e=>{
   const sel = e.target.closest("[data-cert]"); if(!sel) return;
@@ -55,19 +52,10 @@ $("m-list").addEventListener("change", e=>{
 $("m-list").addEventListener("click", e=>{
   const row = e.target.closest(".mrow"); if(!row) return;
   const n = row.dataset.n;
-  if(e.target.closest("[data-rate]")){
-    const mb = DATA.members.find(x=>x.name===n)||{};
-    const ex = prompt(n+" 일당(전시) — 숫자만, 비우면 빈칸", mb.rateExh ?? ""); if(ex===null) return;
-    const ou = prompt(n+" 일당(외부) — 숫자만, 비우면 빈칸", mb.rateOut ?? ""); if(ou===null) return;
-    const hr = prompt(n+" 시급(야간 시간제) — 숫자만, 비우면 빈칸", mb.rateHour ?? ""); if(hr===null) return;
-    busy(true);
-    api.adminSetRates(n, ou, ex, hr).then(r=>{ busy(false); admApply(r.data); toast(n+" 일당을 저장했어요."); }, admFail);
-    return;
-  }
   const ad = e.target.closest("[data-admin]");
   if(ad){
     const on = ad.dataset.admin==="1", mb = DATA.members.find(x=>x.name===n)||{};
-    if(on && !confirm(n+" 님을 간부(관리자)로 지정할까요?\n모든 일정·급여·팀원 정보를 보고 고칠 수 있게 돼요.")) return;
+    if(on && !confirm(n+" 님을 간부(관리자)로 지정할까요?\n모든 일정·팀원 정보를 보고 고칠 수 있게 돼요.")) return;
     if(!on && !confirm(n+" 님의 간부(관리자) 권한을 해제할까요?"+(mb.isMe?"\n본인 권한이라 해제하면 바로 관리자 화면이 닫혀요.":""))) return;
     busy(true);
     api.adminSetAdmin(n, on).then(r=>{ busy(false); if(!on && mb.isMe) return location.reload(); admApply(r.data); toast(n+(on?" 님을 간부로 지정했어요.":" 님 간부 권한을 해제했어요.")); }, admFail);
@@ -86,7 +74,7 @@ $("m-list").addEventListener("click", e=>{
     return;
   }
   if(e.target.closest("[data-retire]")){
-    if(!confirm(n+" 님을 퇴사 처리할까요?\n지난 근무 기록과 급여는 그대로 남고, 명단·배정 목록·로그인에서만 빠져요. 나중에 복귀시킬 수 있어요.")) return;
+    if(!confirm(n+" 님을 퇴사 처리할까요?\n지난 근무 기록은 그대로 남고, 명단·배정 목록·로그인에서만 빠져요. 나중에 복귀시킬 수 있어요.")) return;
     const go = ok => api.adminRetireMember(n, ok).then(r=>{
         if(!r.ok && r.future){ busy(false);
           if(confirm(n+" 님은 오늘 이후 배정이 "+r.future+"칸 남아 있어요.\n그 배정은 빼고 퇴사 처리할까요?")){ busy(true); go(true); }

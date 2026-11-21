@@ -27,6 +27,7 @@
   --blue-bg:#bfd0f6; --blue-ink:#1d3a80;
   --orange-bg:#fde0bd; --orange-ink:#7a4210;
   --green-bg:#d4eecf; --green-ink:#24561d;
+  --blue-mid:#5b7fd6; --orange-mid:#e0913f; --green-mid:#5fa75a; --night-mid:#5a4aa8;   /* 카드 왼쪽 띠 */
   /* 야간 근무 */
   --night-bg:#3d3270; --night-ink:#f1edff; --night-text:#3d3270;
   /* 글꼴 · 둥근 정도 */
@@ -50,6 +51,7 @@
   --blue-bg:#22356a; --blue-ink:#cfdcfa;
   --orange-bg:#553416; --orange-ink:#fde0bd;
   --green-bg:#1f4421; --green-ink:#d4eecf;
+  --blue-mid:#7f9ee8; --orange-mid:#d08a45; --green-mid:#6fb36a; --night-mid:#9a8af0;
   --night-text:#c9bdf5;
 }}
 
@@ -228,7 +230,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .adminonly{display:none}
 body.admin .adminonly{display:flex}
 body.admin .dayonly{display:grid}
-.abar{flex-wrap:wrap;align-items:center;gap:8px;padding:0 0 12px;border-radius:0;background:var(--accent);color:var(--accent-ink);margin-top:-14px;border-top:1px solid var(--band-line)}
+.abar{flex-wrap:wrap;align-items:center;gap:8px;padding:0 0 12px;border-radius:0;background:var(--accent);color:var(--accent-ink);margin-top:-16px;border-top:1px solid var(--band-line)}
 .abar .badge{font-weight:700;font-size:.85rem;margin-right:4px;padding:3px 8px;border-radius:999px;background:var(--today);margin:12px 4px 0 0}
 .atabs{display:flex;flex-wrap:wrap;gap:4px;flex:1}
 .atabs button,.abar .out{font:inherit;font-size:.85rem;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.35);
@@ -451,6 +453,36 @@ header,.abar{background:var(--band);color:var(--band-ink);box-shadow:0 0 0 100vm
 }
 @media (pointer:coarse){
   .brand .lnk.lo{min-height:44px}
+}
+
+/* ---------- 다듬기 2: 여백 · 큰 숫자 · 흰 카드 (2026-11-21) ---------- */
+.wrap{gap:16px}
+.panel{padding:20px;gap:14px}
+/* 큰 숫자 카드: 위에 작은 이름, 아래 큰 숫자 + 작은 단위 */
+.mysum{flex:1 1 100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;color:var(--fg)}
+.mysum:empty{display:none}
+.stat,.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-in);padding:12px 14px;display:grid;gap:4px;align-content:start}
+.stat small,.kpi span{font-size:.78rem;color:var(--muted);font-weight:600}
+.stat b,.kpi b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:1.7rem;font-weight:800;line-height:1.1;letter-spacing:-.02em;color:var(--fg)}
+.stat b i,.kpi b i{font-style:normal;font-size:.8rem;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
+.kpis{grid-template-columns:repeat(3,1fr)}
+/* 날짜 카드: 색을 칠한 상자 대신 흰 카드 + 왼쪽 색 띠 (글자가 더 잘 읽힘) */
+.item.c-blue,.item.c-orange,.item.c-green,.item.c-night{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-left:4px solid var(--stripe);padding:14px 16px}
+.item.c-blue{--stripe:var(--blue-mid)}
+.item.c-orange{--stripe:var(--orange-mid)}
+.item.c-green{--stripe:var(--green-mid)}
+.item.c-night{--stripe:var(--night-mid)}
+.item.c-night .nbadge{background:var(--night-bg);color:var(--night-ink);padding:0 7px}
+.item .k,.item .meta{color:var(--muted);opacity:1}
+.item .t{font-size:1.02rem;letter-spacing:-.01em}
+/* 관리자 행사 목록: 줄 대신 카드 */
+.erow.eopen{border:1px solid var(--line);border-radius:var(--r-in);padding:14px 12px;margin:0 0 8px}
+.erow.eopen:first-child{border-top:1px solid var(--line);margin-top:6px}
+.erow.eopen .emain > b{font-size:1rem}
+@media (max-width:720px){
+  .panel{padding:18px 16px}
+  .stat,.kpi{padding:10px 12px}
+  .stat b,.kpi b{font-size:1.45rem}
 }
 
 /* ================= 예전 인라인 style 자리 =================

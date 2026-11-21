@@ -16,9 +16,9 @@ function renderStats(){
     .sort((a,b)=>b.s.days.size-a.s.days.size || b.total-a.total || a.n.localeCompare(b.n));
   const sum = rows.reduce((t,r)=>({day:t.day+r.s.day, night:t.night+r.s.night, ppl:t.ppl+(r.total?1:0)}), {day:0, night:0, ppl:0});
   $("p-sum").innerHTML =
-    '<div class="kpi"><span>근무 인원</span><b>'+sum.ppl+'명</b></div>'+
-    '<div class="kpi"><span>주간</span><b>'+sum.day+'회</b></div>'+
-    '<div class="kpi"><span>야간</span><b>'+sum.night+'회</b></div>';
+    '<div class="kpi"><span>근무 인원</span><b>'+sum.ppl+'<i>명</i></b></div>'+
+    '<div class="kpi"><span>주간</span><b>'+sum.day+'<i>회</i></b></div>'+
+    '<div class="kpi"><span>야간</span><b>'+sum.night+'<i>회</i></b></div>';
   $("p-table").innerHTML = '<thead><tr><th>이름</th><th class="r">근무일</th><th class="r">주간</th><th class="r">야간</th></tr></thead><tbody>'+
     rows.map(r=>'<tr class="'+(r.total?'':'idle')+'"><td>'+esc(r.n)+(noCert.has(r.n)?' <span class="miss">미이수</span>':'')+'</td>'+
       '<td class="r">'+r.s.days.size+'일</td><td class="r">'+r.s.day+'회</td><td class="r">'+r.s.night+'회</td></tr>').join("")+

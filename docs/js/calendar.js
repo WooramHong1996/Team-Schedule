@@ -94,7 +94,9 @@ function render(){
     }
   }
   document.getElementById("mysum").innerHTML = person
-    ? (m+1)+'월 근무 <b>'+workDates.size+'</b>일 · 주간 <b>'+nDay+'</b> · 야간 <b>'+nNight+'</b>'
+    ? '<span class="stat"><small>'+(m+1)+'월 근무</small><b>'+workDates.size+'<i>일</i></b></span>'+
+      '<span class="stat"><small>주간</small><b>'+nDay+'<i>회</i></b></span>'+
+      '<span class="stat"><small>야간</small><b>'+nNight+'<i>회</i></b></span>'
     : '';
   document.getElementById("evtitle").textContent = person ? person+"님의 이번 달 행사" : "이번 달 행사";
 

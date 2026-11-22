@@ -75,7 +75,7 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     // 팀원: 고른 날의 내 근무는 맨 위 카드에 (달력 아래 날짜 칸은 안 씀)
     await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);
     { const h = await p.textContent('#hero');
-      T('hero shows picked day work', h.includes('11/4') && h.includes('수원 메쎄') && h.includes('오늘로'));
+      T('hero shows picked day work', (await p.textContent('#hero .hdate b')) === '4' && h.includes('11월 수요일') && h.includes('수원 메쎄') && h.includes('오늘로'));
       T('member day panel hidden', !(await p.isVisible('#daypanel'))); }
     await p.evaluate(() => { selected = '2026-11-02'; render(); });
     T('hero says no work on free day', (await p.textContent('#hero')).includes('이날은 근무가 없어요'));

@@ -46,7 +46,8 @@ const ICONS = {
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   users: '<circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.5 14.8c1.9.6 3.1 2.2 3.5 4.7"/>',
   flag:  '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
-  alert: '<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.3"/>'
+  alert: '<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+  arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>'
 };
 function icon(name, size){
   const s = size || 16;

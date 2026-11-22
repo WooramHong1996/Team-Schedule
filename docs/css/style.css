@@ -6,30 +6,32 @@
    이 블록(밝은 화면)과 바로 아래 다크 모드 블록만 고치면 전체 색이 바뀌어요.
    글자색(-ink)과 배경색(-bg) 짝은 대비 4.5:1 이상을 지켜 주세요. */
 :root{
-  /* 맨 위 남색 띠 */
-  --band:#172a4d; --band-ink:#ffffff; --band-sub:#b9c6de; --band-line:rgba(255,255,255,.18);
+  /* 맨 위 검정 띠 (2026-11-22 검정·금색 테마) */
+  --band:#0a0a0a; --band-ink:#f4efe2; --band-sub:#a9a294; --band-line:rgba(212,175,55,.45);
+  --gold:#d4af37; --gold-ring:rgba(201,162,39,.22); --gold-select:rgba(212,175,55,.3);
+  --band-line-soft:rgba(255,255,255,.08); --shadow-soft:0 1px 2px rgba(20,20,18,.04),0 8px 24px rgba(20,20,18,.04);
   /* 바탕 · 카드 · 선 · 글자 */
-  --bg:#f2f4f8; --surface:#ffffff; --line:#e2e6ed; --line-strong:#cfd6e2;
-  --fg:#172033; --muted:#5b667b;
-  /* 강조(선택·포커스) */
-  --accent:#1f3864; --accent-ink:#ffffff;
+  --bg:#f7f5f0; --surface:#ffffff; --line:#e8e4da; --line-strong:#d3ccbc;
+  --fg:#141412; --muted:#5f5a50;
+  /* 강조(버튼·선택·포커스) — 금색이 아니라 먹색. 금색은 --gold 로 딱 세 군데만 */
+  --accent:#141412; --accent-ink:#f7f5f0;
   /* 달력 칸 상태 */
-  --out-bg:#f7f8fb; --hover-bg:#f5f7fb; --sel-bg:#eef2f8;
-  --today:#c2410c; --today-ink:#ffffff;        /* 오늘 */
+  --out-bg:#f9f8f4; --hover-bg:#faf8f3; --sel-bg:#f1ede2;
+  --today:#c9a227; --today-ink:#141006;        /* 오늘 */
   --sun:#c43d3d; --sat:#2f5fb8;                 /* 일요일 · 토요일 */
   /* 알림 · 상태 */
   --warn:#b42828; --warn-ink:#ffffff;           /* 부족 · 경고 · 실패 */
   --ok-ink:#14532d; --over-ink:#7a3e00;         /* 인원 OK · 인원 초과 */
-  --lock:#1f3864; --lock-ink:#ffffff;           /* 간부 표시 */
+  --lock:#141412; --lock-ink:#f4efe2;           /* 간부 표시 */
   --linked-line:#3b8a3b; --linked-ink:#2d6f2d;  /* 카카오 연결됨 */
   --kakao:#FEE500; --kakao-ink:#191600;         /* 카카오 (브랜드 색이라 다크 모드에서도 그대로) */
-  /* 행사 종류 색 (전시=blue, 외부=orange, 기타=green — js/data.js 의 TYPE_CLS) */
-  --blue-bg:#bfd0f6; --blue-ink:#1d3a80;
-  --orange-bg:#fde0bd; --orange-ink:#7a4210;
+  /* 행사 종류 색 (전시=blue → 검정 막대+금색 글자, 외부=orange → 미색 막대, 기타=green — js/data.js 의 TYPE_CLS) */
+  --blue-bg:#141412; --blue-ink:#e2c25a;
+  --orange-bg:#ebe6da; --orange-ink:#2b2822;
   --green-bg:#d4eecf; --green-ink:#24561d;
-  --blue-mid:#5b7fd6; --orange-mid:#e0913f; --green-mid:#5fa75a; --night-mid:#5a4aa8;   /* 카드 왼쪽 띠 */
+  --blue-mid:#141412; --orange-mid:#b9b1a0; --green-mid:#5fa75a; --night-mid:#6b6458;   /* 카드 왼쪽 띠 */
   /* 야간 근무 */
-  --night-bg:#3d3270; --night-ink:#f1edff; --night-text:#3d3270;
+  --night-bg:#3b3731; --night-ink:#f4efe2; --night-text:#4a443a;
   /* 글꼴 · 둥근 정도 */
   --f-ui:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
   --f-num:var(--f-ui);                          /* 숫자 글꼴 (따로 바꾸고 싶을 때) */
@@ -38,21 +40,23 @@
 /* 다크 모드 (기기 설정을 따라감). 밝은 화면과 값이 다른 것만 적어요. */
 @media (prefers-color-scheme: dark){:root{
   color-scheme:dark;
-  --band:#16213a; --band-ink:#eef2fa; --band-sub:#9fb0cf; --band-line:rgba(255,255,255,.14);
-  --bg:#0e131c; --surface:#171d29; --line:#262e3d; --line-strong:#323c4f;
-  --fg:#e8ecf4; --muted:#9aa4b8;
-  --accent:#8fb0ea; --accent-ink:#0f1522;
-  --out-bg:#131924; --hover-bg:#1b2230; --sel-bg:#1d2638;
-  --today:#f0a052; --today-ink:#1a1206;
+  --band:#000000; --band-ink:#f1ebdb; --band-sub:#8f897c; --band-line:rgba(212,175,55,.38);
+  --bg:#0a0a0a; --surface:#141414; --line:#262523; --line-strong:#34322e;
+  --fg:#f1ede3; --muted:#a29c8f;
+  --accent:#f1ede3; --accent-ink:#0a0a0a;
+  --out-bg:#0e0e0e; --hover-bg:#1a1a19; --sel-bg:#1f1d1a;
+  --today:#d4af37; --today-ink:#141006;
   --sun:#f08080; --sat:#8fb0ff;
   --warn:#ff8a8a; --warn-ink:#1a0606;
   --ok-ink:#8fd19e; --over-ink:#ffc58a;
   --linked-line:#5aa65a; --linked-ink:#8fd19e;
-  --blue-bg:#22356a; --blue-ink:#cfdcfa;
-  --orange-bg:#553416; --orange-ink:#fde0bd;
+  --blue-bg:#2e2611; --blue-ink:#e6c65a;
+  --orange-bg:#34332f; --orange-ink:#ece8de;
   --green-bg:#1f4421; --green-ink:#d4eecf;
-  --blue-mid:#7f9ee8; --orange-mid:#d08a45; --green-mid:#6fb36a; --night-mid:#9a8af0;
-  --night-text:#c9bdf5;
+  --blue-mid:#d4af37; --orange-mid:#6e695f; --green-mid:#6fb36a; --night-mid:#8a8273;
+  --night-text:#cfc6b4;
+  --night-bg:#2f2c27;
+  --night-ink:#f1ebdb;
 }}
 
 /* ================= 공통 · 팀원 화면 · 달력 · 로그인 ================= */
@@ -484,6 +488,23 @@ header,.abar{background:var(--band);color:var(--band-ink);box-shadow:0 0 0 100vm
   .stat,.kpi{padding:10px 12px}
   .stat b,.kpi b{font-size:1.45rem}
 }
+
+/* ---------- 검정·금색 테마 (2026-11-22, MotionSites 디자인 기준 반영) ----------
+   금색(--gold)은 딱 세 군데: ① 띠 위 달 이름 ② 오늘 표시 ③ 전시 행사 막대 글자. 버튼·선택은 먹색. */
+header{border-bottom:1px solid var(--band-line)}
+.abar{border-top-color:var(--band-line-soft)}
+.month{color:var(--gold);font-weight:600;letter-spacing:-.03em}
+.brand h1{font-weight:700;letter-spacing:-.02em}
+.nav button,.btn{border-radius:999px}
+.atabs button[aria-selected="true"]{background:var(--band-ink);color:var(--band);border-color:var(--band-ink)}
+.abar .badge{background:transparent;color:var(--gold);border:1px solid var(--band-line)}
+.stat b,.kpi b{font-weight:500;font-size:2rem;letter-spacing:-.035em}
+.panel h2{font-weight:700;letter-spacing:-.02em}
+.eihead h2,.edhead h2{font-weight:700;letter-spacing:-.025em}
+.day.sel{box-shadow:inset 0 0 0 2px var(--fg)}
+.day.today .num{box-shadow:0 0 0 3px var(--gold-ring)}
+.cal,.panel{box-shadow:var(--shadow-soft)}
+::selection{background:var(--gold-select)}
 
 /* ================= 예전 인라인 style 자리 =================
    HTML·JS 안에 직접 적혀 있던 모양을 여기로 옮겼어요. */

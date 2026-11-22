@@ -112,6 +112,8 @@ function render(){
 
 function renderDay(){
   const p = document.getElementById("daypanel");
+  // 팀원 화면에서 오늘을 보고 있으면 위의 '오늘' 카드와 같은 내용이라 숨김 (다른 날을 누르면 나옴)
+  p.classList.toggle("dup", !ADM.admin && !!person && selected===todayKey);
   const [yy,mo,dd] = selected.split("-").map(Number);
   const d = new Date(yy,mo-1,dd);
   const items = itemsFor(selected);
@@ -163,7 +165,8 @@ document.getElementById("grid").addEventListener("click", e=>{
   if(mo-1!==view.getMonth()){ view = new Date(yy,mo-1,1); }
   render();
   if(window.matchMedia("(max-width:720px)").matches){
-    document.getElementById("daypanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+    const dp = document.getElementById("daypanel");
+    (dp.classList.contains("dup") ? document.getElementById("hero") : dp).scrollIntoView({behavior:"smooth",block:"nearest"});
   }
 });
 document.getElementById("prev").onclick = ()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); selected=firstEventDay(view.getFullYear(),view.getMonth()); render(); };

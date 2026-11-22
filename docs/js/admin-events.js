@@ -313,8 +313,9 @@ function renderEventList(){
     lastMon = e.start.slice(0,7);
     const sh = shortDays(e.name), nn = Object.keys(nightsOf(e.name)).length;
     const noNeed = e.needDay==null && e.needNight==null;
-    return monHead+'<div class="erow eopen" data-open="'+esc(e.name)+'" role="button" tabindex="0"><i class="sw '+c+'"></i><div class="emain"><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
-      '<span>'+esc(e.type||"종류 없음")+' · '+mdShort(e.start)+(e.end!==e.start?"–"+mdShort(e.end):"")+(e.place?' · '+esc(e.place):'')+'</span>'+
+    return monHead+'<div class="erow eopen" data-open="'+esc(e.name)+'" role="button" tabindex="0"><div class="emain">'+
+      '<span class="etag '+c+'">'+esc(e.type||"종류 없음")+'</span><b>'+(q?hl(e.name,q):esc(e.name))+'</b>'+
+      '<span class="emeta"><span>'+icon('calendar',14)+' '+mdShort(e.start)+(e.end!==e.start?" – "+mdShort(e.end):"")+'</span>'+(e.place?'<span>'+icon('map',14)+' '+esc(e.place)+'</span>':'')+'</span>'+
       '<div class="ebadges"><span class="ebadge">배정 '+(cnt[e.name]||0)+'칸</span>'+
         (sh ? '<span class="ebadge bad">부족 '+sh+'일</span>' : noNeed ? '' : '<span class="ebadge ok">인원 OK</span>')+
         (nn ? '<span class="ebadge">야간 '+nn+'일</span>' : '')+'</div>'+

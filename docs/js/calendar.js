@@ -99,6 +99,7 @@ function render(){
       '<span class="stat"><small>야간</small><b>'+nNight+'<i>회</i></b></span>'
     : '';
   document.getElementById("evtitle").textContent = person ? person+"님의 이번 달 행사" : "이번 달 행사";
+  if(typeof renderHero==="function") renderHero();
 
   const evlist = document.getElementById("evlist");
   evlist.innerHTML = [...monthEvents.values()].sort((a,b)=>(a.start||"").localeCompare(b.start||""))

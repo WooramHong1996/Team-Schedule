@@ -35,7 +35,7 @@
   /* 글꼴 · 둥근 정도 */
   --f-ui:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
   --f-num:var(--f-ui);                          /* 숫자 글꼴 (따로 바꾸고 싶을 때) */
-  --r-card:14px; --r-in:10px;                   /* 큰 카드 · 안쪽 칸 (칩 6px, 알약 999px) */
+  --r-card:22px; --r-in:14px;                   /* 큰 카드 · 안쪽 칸 (칩 6px, 알약 999px) */
 }
 /* 다크 모드 (기기 설정을 따라감). 밝은 화면과 값이 다른 것만 적어요. */
 @media (prefers-color-scheme: dark){:root{
@@ -505,6 +505,50 @@ header{border-bottom:1px solid var(--band-line)}
 .day.today .num{box-shadow:0 0 0 3px var(--gold-ring)}
 .cal,.panel{box-shadow:var(--shadow-soft)}
 ::selection{background:var(--gold-select)}
+
+/* ---------- 첫 화면 큰 카드 · 숫자 카드 · 행사 카드 (시안 3) ---------- */
+.hero{display:grid;gap:12px}
+.hcard{background:var(--band);color:var(--band-ink);border-radius:var(--r-card);padding:22px 22px 20px;display:grid;gap:8px;position:relative;overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--band-line)}
+.hcard[role=button]{cursor:pointer}
+.hcard[role=button]:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.hlabel{color:var(--gold);font-size:.8rem;font-weight:700;letter-spacing:.01em}
+.htitle{font-size:1.6rem;line-height:1.15;font-weight:700;letter-spacing:-.03em}
+.hsub{color:var(--band-sub);font-size:.88rem}
+.hmeta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--band-ink);font-size:.9rem}
+.hmeta > span{display:inline-flex;align-items:center;gap:5px}
+.hmeta .ico{color:var(--band-sub)}
+.hnote{display:flex;gap:6px;align-items:flex-start;color:var(--band-sub);font-size:.85rem;line-height:1.45;border-top:1px solid var(--band-line-soft);padding-top:10px;margin-top:2px}
+.hmore{color:var(--band-sub);font-size:.8rem;font-weight:600;justify-self:end}
+.hkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.hkpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-in);padding:14px 16px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:4px;row-gap:2px;box-shadow:var(--shadow-soft)}
+.hk-l{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.8rem;font-weight:600}
+.hk-l .ico{color:var(--muted)}
+.hkpi b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:2.1rem;font-weight:500;letter-spacing:-.04em;line-height:1.1;color:var(--fg)}
+.hkpi i{font-style:normal;font-size:.85rem;color:var(--muted);font-weight:600}
+.hkpi small{grid-column:1/-1;color:var(--muted);font-size:.78rem}
+.hkpi.warn b{color:var(--warn)}
+/* 행사 관리 카드: 종류 꼬리표 + 아이콘 줄 */
+.emain .etag{width:max-content;padding-right:9px;justify-self:start;display:inline-block;font-size:.75rem;font-weight:700;padding:3px 9px;border-radius:6px;margin-bottom:6px}
+.emain .etag.c-blue{color:var(--blue-ink)} .emain .etag.c-orange{color:var(--orange-ink)} .emain .etag.c-green{color:var(--green-ink)}
+.erow.eopen .emain{display:grid;gap:2px}
+.erow.eopen .emain > b{font-size:1.1rem;letter-spacing:-.02em}
+.emeta{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--muted);font-size:.85rem;margin-top:2px}
+.emeta > span{display:inline-flex;align-items:center;gap:4px}
+.erow.eopen{padding:16px 16px;border-radius:var(--r-in)}
+.panel{padding:24px}
+.panel h2{font-size:1.15rem}
+/* 처음 열 때 한 번: 위에서부터 차례로 살짝 떠오름 */
+@media (prefers-reduced-motion:no-preference){
+  body.intro .hero > *, body.intro .hkpi{animation:rise .7s cubic-bezier(.22,1,.36,1) both}
+  body.intro .hkpi:nth-child(2){animation-delay:.06s} body.intro .hkpi:nth-child(3){animation-delay:.12s} body.intro .hkpi:nth-child(4){animation-delay:.18s}
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (max-width:720px){
+  .hkpis{grid-template-columns:repeat(2,1fr)}
+  .htitle{font-size:1.4rem}
+  .panel{padding:20px 18px}
+}
 
 /* ================= 예전 인라인 style 자리 =================
    HTML·JS 안에 직접 적혀 있던 모양을 여기로 옮겼어요. */

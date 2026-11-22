@@ -72,10 +72,15 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
     T('combo hidden', !(await p.isVisible('#person')));
     T('admin bar hidden', !(await p.isVisible('.abar')));
     await p.evaluate(() => { view = new Date(2026, 10, 1); selected = '2026-11-04'; render(); });
-    const day = await p.textContent('#daypanel');
-    T('day panel shows coworker', day.includes('홍우람') && day.includes('수원 메쎄'));
-    await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);   // 날짜 패널은 휴대폰 화면에서 보임
-    await p.click('#daypanel [data-evinfo="수원 메쎄 입주자박람회"]'); await p.waitForTimeout(200);
+    // 팀원: 고른 날의 내 근무는 맨 위 카드에 (달력 아래 날짜 칸은 안 씀)
+    await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);
+    { const h = await p.textContent('#hero');
+      T('hero shows picked day work', h.includes('11/4') && h.includes('수원 메쎄') && h.includes('오늘로'));
+      T('member day panel hidden', !(await p.isVisible('#daypanel'))); }
+    await p.evaluate(() => { selected = '2026-11-02'; render(); });
+    T('hero says no work on free day', (await p.textContent('#hero')).includes('이날은 근무가 없어요'));
+    await p.evaluate(() => { selected = '2026-11-04'; render(); });
+    await p.click('#hero [data-evinfo="수원 메쎄 입주자박람회"]'); await p.waitForTimeout(200);
     { const t = await p.textContent('#ei-body');
       T('member event info opens', await p.evaluate(() => $('evinfo').open));
       T('info shows notice, manager, tel, my day + coworker', t.includes('06:30 B게이트') && t.includes('김담당') && t.includes('010-1234-5678') && t.includes('11/4') && t.includes('함께: 홍우람'));

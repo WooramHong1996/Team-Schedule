@@ -112,8 +112,8 @@ function render(){
 
 function renderDay(){
   const p = document.getElementById("daypanel");
-  // 팀원 화면에서 오늘을 보고 있으면 위의 '오늘' 카드와 같은 내용이라 숨김 (다른 날을 누르면 나옴)
-  p.classList.toggle("dup", !ADM.admin && !!person && selected===todayKey);
+  // 팀원 화면: 고른 날은 맨 위 카드가 보여 주므로 달력 아래 날짜 칸은 쓰지 않음
+  p.classList.toggle("dup", !ADM.admin && !!person);
   const [yy,mo,dd] = selected.split("-").map(Number);
   const d = new Date(yy,mo-1,dd);
   const items = itemsFor(selected);

@@ -1,4 +1,6 @@
-/* 첫 화면 큰 카드: 팀원은 '오늘 내 근무'(없으면 다음 근무), 간부는 '오늘 현장' + 이달 숫자 카드 */
+/* 첫 화면 큰 카드
+   팀원: 달력에서 고른 날의 내 근무 (처음엔 오늘, 오늘 근무가 없으면 다음 근무). 달력 아래 날짜 칸 대신 이 카드가 바뀜
+   간부: '오늘 현장' + 이달 숫자 카드 */
 function renderHero(){
   const el = document.getElementById("hero"); if(!el) return;
   const me = ADM.admin ? "" : person;
@@ -8,23 +10,35 @@ function renderHero(){
 }
 function heroMember(me){
   const mine = DATA.assign.filter(a=>a.name===me);
-  const today = mine.filter(a=>a.date===todayKey);
-  const next = today.length ? null : mine.filter(a=>a.date>todayKey).sort((a,b)=>a.date.localeCompare(b.date))[0];
-  const pick = today.length ? today : (next ? mine.filter(a=>a.date===next.date) : []);
-  if(!pick.length) return '<div class="hcard"><span class="hlabel">'+md(todayKey)+'</span><b class="htitle">예정된 근무가 없어요</b><span class="hsub">새로 배정되면 여기 가장 먼저 보여요.</span></div>';
-  const a = pick[0], ev = evMap.get(a.event) || {name:a.event};
-  const shifts = pick.map(x=>x.shift).sort((x,y)=>x==="주간"?-1:1).join(" · ");
-  const mates = DATA.assign.filter(x=>x.event===a.event && x.date===a.date && x.name!==me).length;
-  return '<div class="hcard" data-evinfo="'+esc(a.event)+'" role="button" tabindex="0">'+
-    '<span class="hlabel">'+(today.length ? '오늘 · '+md(todayKey) : '다음 근무 · '+md(a.date))+'</span>'+
-    '<b class="htitle">'+esc(ev.name)+'</b>'+
-    '<span class="hmeta">'+
-      '<span>'+icon('check',15)+' '+shifts+'</span>'+
-      (ev.place ? '<span>'+icon('map',15)+' '+esc(ev.place)+'</span>' : '')+
-      '<span>'+icon('users',15)+' 함께 '+mates+'명</span>'+
-    '</span>'+
-    (ev.notice ? '<span class="hnote">'+icon('pin',14)+' '+esc(ev.notice)+'</span>' : '')+
-    '<span class="hmore">자세히 보기 ›</span></div>';
+  const isToday = selected===todayKey;
+  let day = selected, label;
+  let pick = mine.filter(a=>a.date===day);
+  if(isToday && !pick.length){   // 오늘 근무가 없으면 다음 근무를 보여 줌
+    const next = mine.filter(a=>a.date>todayKey).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    if(next){ day = next.date; pick = mine.filter(a=>a.date===day); label = '오늘은 근무 없음 · 다음 근무 '+md(day); }
+  }
+  label = label || (isToday ? '오늘 · '+md(day) : md(day)+(day<todayKey && pick.length ? ' · 지난 근무' : ''));
+  const back = isToday ? '' : '<button type="button" class="hback" data-today>오늘로</button>';
+  if(!pick.length) return '<div class="hcard empty"><span class="hlabel">'+label+'</span>'+back+
+    '<b class="htitle">'+(isToday ? '예정된 근무가 없어요' : '이날은 근무가 없어요')+'</b>'+
+    '<span class="hsub">'+(isToday ? '새로 배정되면 여기 가장 먼저 보여요.' : '달력에서 다른 날을 눌러 보세요.')+'</span></div>';
+  // 같은 날 행사가 둘 이상이면 행사마다 한 덩어리
+  const byEv = new Map(); pick.forEach(a=>{ (byEv.get(a.event) || byEv.set(a.event, []).get(a.event)).push(a.shift); });
+  return [...byEv.entries()].map(([name, shs], i)=>{
+    const ev = evMap.get(name) || {name};
+    const shifts = shs.sort((x,y)=>x==="주간"?-1:1).join(" · ");
+    const mates = new Set(DATA.assign.filter(x=>x.event===name && x.date===day && x.name!==me).map(x=>x.name)).size;
+    return '<div class="hcard" data-evinfo="'+esc(name)+'" role="button" tabindex="0">'+
+      (i===0 ? '<span class="hlabel">'+label+'</span>'+back : '')+
+      '<b class="htitle">'+esc(ev.name)+'</b>'+
+      '<span class="hmeta">'+
+        '<span>'+icon('check',15)+' '+shifts+'</span>'+
+        (ev.place ? '<span>'+icon('map',15)+' '+esc(ev.place)+'</span>' : '')+
+        '<span>'+icon('users',15)+' 함께 '+mates+'명</span>'+
+      '</span>'+
+      (ev.notice ? '<span class="hnote">'+icon('pin',14)+' '+esc(ev.notice)+'</span>' : '')+
+      '<span class="hmore">자세히 보기 ›</span></div>';
+  }).join("");
 }
 function heroAdmin(){
   const y=view.getFullYear(), m=view.getMonth(), s=iso(new Date(y,m,1)), e=iso(new Date(y,m+1,0));
@@ -57,6 +71,7 @@ function countUp(el){
   });
 }
 document.getElementById("hero").addEventListener("click", e=>{
+  if(e.target.closest("[data-today]")){ document.getElementById("today").click(); return; }
   const c = e.target.closest("[data-evinfo]"); if(c && !ADM.admin) showEventInfo(c.dataset.evinfo);
 });
 document.getElementById("hero").addEventListener("keydown", e=>{

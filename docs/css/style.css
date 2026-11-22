@@ -538,7 +538,10 @@ header{border-bottom:1px solid var(--band-line)}
 .erow.eopen{padding:16px 16px;border-radius:var(--r-in)}
 .panel{padding:24px}
 .panel h2{font-size:1.15rem}
-.dayonly.dup{display:none}   /* 팀원: 오늘은 '오늘' 카드로 충분 */
+.dayonly.dup{display:none}   /* 팀원: 고른 날은 맨 위 카드로 */
+.hcard .hback{position:absolute;top:16px;right:16px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--band-line);background:transparent;color:var(--band-ink);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer}
+.hcard.empty .htitle{font-size:1.25rem}
+@media (pointer:coarse){.hcard .hback{min-height:44px;top:12px;right:12px}}
 /* 처음 열 때 한 번: 위에서부터 차례로 살짝 떠오름 */
 @media (prefers-reduced-motion:no-preference){
   body.intro .hero > *, body.intro .hkpi{animation:rise .7s cubic-bezier(.22,1,.36,1) both}

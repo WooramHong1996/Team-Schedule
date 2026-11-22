@@ -95,6 +95,7 @@ const T = (name, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok)
   { const { p, errs } = await page(b, { id: 'U-admin', user_metadata: {} });
     T('admin mode', await p.evaluate(() => document.body.classList.contains('admin') && ADM.admin === true));
     T('admin sees all', await p.evaluate(() => DATA.assign.length === 5));
+    { const al = await p.$('#hero .halert'); T('admin hero shows staffing line first', !!al && (await p.evaluate(() => document.querySelector('#hero .halert').compareDocumentPosition(document.querySelector('#hero .hcard')) & 4) > 0)); }
     // 배정 충돌 → 덮어쓰기
     await p.evaluate(() => { ADM.evM = new Date(2026, 10, 1); admTab('events'); });
     T('list is summary only (no edit buttons)', await p.evaluate(() => !document.querySelector('#e-list [data-eedit],#e-list [data-del],#e-list .nedit') && document.querySelectorAll('#e-list [data-open]').length === 2));

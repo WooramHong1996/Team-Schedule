@@ -6,8 +6,8 @@
    이 블록(밝은 화면)과 바로 아래 다크 모드 블록만 고치면 전체 색이 바뀌어요.
    글자색(-ink)과 배경색(-bg) 짝은 대비 4.5:1 이상을 지켜 주세요. */
 :root{
-  /* 시안 4 '프리미엄' (사용자 디자인 캔버스 · 2026-11-22): 아이보리 / 에스프레소, 띠 없이 바탕과 같은 색 */
-  --band:#F6F2EA; --band-ink:#1F1B16; --band-sub:#6E665A; --band-line:#DCD3C3;
+  /* 시안 4 '프리미엄' (사용자 디자인 캔버스 · 2026-11-22): 아이보리 바탕 + 에스프레소 머리띠 */
+  --band:#2B231D; --band-ink:#F6F2EA; --band-sub:#CFC4B2; --band-line:#4A3E34; --band-gold:#D4B98C;
   --gold:#7D6239; --gold-ring:rgba(125,98,57,.18); --gold-select:rgba(125,98,57,.18);
   --band-line-soft:#E6DECF; --shadow-soft:none;
   /* 바탕 · 카드 · 선 · 글자 */
@@ -43,7 +43,7 @@
 /* 다크 모드 (기기 설정을 따라감). 밝은 화면과 값이 다른 것만 적어요. */
 @media (prefers-color-scheme: dark){:root{
   color-scheme:dark;
-  --band:#231B16; --band-ink:#F3EDE3; --band-sub:#B5A994; --band-line:#4A3E34;
+  --band:#17110D; --band-ink:#F3EDE3; --band-sub:#B5A994; --band-line:#3A3029; --band-gold:#D4B98C;
   --bg:#231B16; --surface:#2A211B; --line:#4A3E34; --line-strong:#5A4C40;
   --fg:#F3EDE3; --muted:#B5A994;
   --accent:#D4B98C; --accent-ink:#231B16;
@@ -564,19 +564,20 @@ header{border-bottom:1px solid var(--band-line)}
    카드 상자 대신 얇은 선, 큰 명조 숫자, 자간 넓은 금색 소제목. 금색은 소제목·점·큰 날짜 강조에만. */
 body{background:var(--bg)}
 header,.abar{box-shadow:0 0 0 100vmax var(--band)}
-header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
-.brand h1{font-size:.78rem;font-weight:500;letter-spacing:.24em;color:var(--muted)}
-.brand p{font-size:.75rem}
-.brand .lnk.lo{border-color:var(--line);color:var(--fg)}
-.nav button{border:1px solid var(--line);color:var(--fg);background:transparent}
-.nav button:hover{border-color:var(--fg);background:transparent}
-.month{font-family:var(--f-display);color:var(--fg);font-weight:600;letter-spacing:.01em}
-.abar{border-top:0;padding-bottom:16px}
-.atabs{border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
-.atabs button{color:var(--muted);height:34px}
-.atabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.abar .out{border-color:var(--line);color:var(--fg)}
-.abar .badge{color:var(--gold);border-color:var(--line)}
+header{border-bottom:0;padding-top:max(18px,env(safe-area-inset-top,0px))}
+.brand h1{font-family:var(--f-display);font-size:1.15rem;font-weight:700;letter-spacing:-.02em;color:var(--band-ink)}
+.brand p{font-size:.75rem;color:var(--band-sub)}
+.brand .lnk.lo{border-color:var(--band-line);color:var(--band-ink)}
+.nav button{border:1px solid var(--band-line);color:var(--band-ink);background:transparent}
+.nav button:hover{border-color:var(--band-ink);background:transparent}
+.month{font-family:var(--f-display);color:var(--band-gold);font-weight:600;letter-spacing:.01em}
+.abar{border-top:1px solid var(--band-line);padding:14px 0 16px}
+.atabs{border:1px solid var(--band-line);border-radius:999px;padding:3px;gap:2px}
+.atabs button{color:var(--band-sub);height:38px}
+.atabs button[aria-selected="true"]{background:var(--band-ink);color:var(--band);border-color:var(--band-ink)}
+.abar .out{border-color:var(--band-line);color:var(--band-ink)}
+.abar .badge{color:var(--band-gold);border-color:var(--band-line)}
+#hero{padding-top:12px}
 /* 큰 날짜 */
 .hdate{display:flex;align-items:flex-end;gap:16px;position:relative}
 .hdate > b{font-family:var(--f-display);font-size:5.4rem;line-height:.9;font-weight:600;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
@@ -586,9 +587,9 @@ header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
 .hdate .hback{position:static;margin-left:auto;align-self:center;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);color:var(--fg);background:transparent;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
 /* 오늘 근무: 상자 없이 굵은 윗선 + 금색 소제목 */
 .hcard,.hcard.admin{background:transparent;color:var(--fg);box-shadow:none;border-radius:0;padding:24px 0 0;border-top:1px solid var(--fg);gap:14px;overflow:visible}
-.hlabel{display:flex;align-items:center;gap:10px;font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+.hlabel{display:flex;align-items:center;gap:10px;font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 .hlabel > i{flex:1;height:1px;background:var(--line)}
-.hlive{display:inline-flex;align-items:center;gap:6px;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.hlive{display:inline-flex;align-items:center;gap:6px;letter-spacing:0;color:var(--muted);font-weight:500}
 .hlive i{width:6px;height:6px;border-radius:50%;background:var(--live)}
 .htitle{font-family:var(--f-display);font-size:2rem;line-height:1.3;font-weight:700;letter-spacing:-.03em}
 .hcard.empty .htitle{font-size:1.45rem}
@@ -599,7 +600,7 @@ header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
 .hrows > div{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .hrows dt{font-size:.82rem;color:var(--muted);flex:none}
 .hrows dd{margin:0;font-weight:500;text-align:right}
-.hbtn{display:flex;align-items:center;justify-content:space-between;height:54px;padding:0 20px;border-radius:4px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:.88rem;font-weight:600;letter-spacing:.12em;cursor:pointer}
+.hbtn{display:flex;align-items:center;justify-content:space-between;height:54px;padding:0 20px;border-radius:4px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:.95rem;font-weight:700;letter-spacing:0;cursor:pointer}
 .hbtn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .hmore,.hnote{display:none}
 /* 숫자: 선으로 나눈 칸 + 명조 숫자 */
@@ -610,11 +611,11 @@ header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
 .stat b i,.kpi b i{font-family:var(--f-ui);font-weight:400}
 .hkpi{display:grid}
 .hkpi.warn b{color:var(--warn)}
-.who label{font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+.who label{font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 /* 상자 대신 선 */
 .panel,.cal,.edhead{background:transparent;border:0;border-radius:0;box-shadow:none}
 .panel{padding:22px 0 0;border-top:1px solid var(--line)}
-.panel h2{font-family:var(--f-ui);font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+.panel h2{font-family:var(--f-ui);font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 .panel h2 small{letter-spacing:0;color:var(--muted)}
 .cal{border-top:1px solid var(--line)}
 .dow div{font-size:.75rem;border-bottom-color:var(--line)}
@@ -638,6 +639,9 @@ header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
   body:not(.admin) .legend .sw{width:8px;height:8px}
   body:not(.admin) .legend .sw.c-blue{background:var(--gold)}
   body:not(.admin) .legend .sw.c-orange{background:var(--muted)}
+  body:not(.admin) .ev .sw{border-radius:50%;width:8px;height:8px}
+  body:not(.admin) .ev .sw.c-blue{background:var(--gold)}
+  body:not(.admin) .ev .sw.c-orange{background:var(--muted)}
   .hdate > b{font-size:4.6rem}
   .htitle{font-size:1.75rem}
   .hkpis{grid-template-columns:repeat(2,1fr)}
@@ -645,17 +649,40 @@ header{border-bottom:0;padding-top:max(20px,env(safe-area-inset-top,0px))}
   .hkpis .hkpi:nth-child(n+3){border-top:1px solid var(--line)}
   .panel{padding:20px 0 0}
 }
+/* 관리자 첫 화면: 날짜는 한 줄로 작게, 인원 부족이 맨 먼저 */
+.hdate.sm{gap:10px;align-items:baseline}
+.hdate.sm > b{font-size:2.4rem;line-height:1}
+.hdate.sm > span{flex-direction:row;align-items:baseline;gap:8px;padding:0}
+.hdate.sm em{font-size:1.05rem}
+.halert{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px 18px;border:0;border-radius:4px;background:var(--warn);color:var(--warn-ink);font:inherit;text-align:left;cursor:pointer}
+.halert b{font-family:var(--f-display);font-size:1.9rem;font-weight:700;line-height:1}
+.halert span{display:flex;flex-direction:column;flex:1}
+.halert strong{font-size:1rem}
+.halert small{font-size:.8rem;opacity:.9}
+.halert:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+.halert.ok{background:transparent;color:var(--fg);border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;padding:12px 0;cursor:default;min-height:0}
+.halert.ok b{display:none}
+.halert.ok strong::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--live);margin-right:8px;vertical-align:2px}
+/* 관리자 달력: 부족한 날은 숫자 둘레 대신 오른쪽 위 작은 점만, 막대는 얇고 각지게 */
+.day.warn .num{box-shadow:none}
+body.admin .short-dot{width:6px;height:6px;top:9px;right:8px}
+.dbar,.bar{border-radius:2px}
+/* 날짜 카드(관리자): 상자 대신 선, 왼쪽 굵은 띠 대신 작은 점 */
+.item.c-blue,.item.c-orange,.item.c-green,.item.c-night{background:transparent;border:0;border-radius:0;border-top:1px solid var(--line);padding:16px 0}
+.item.c-blue .t,.item.c-orange .t,.item.c-green .t,.item.c-night .t{font-family:var(--f-display);font-size:1.15rem}
+.item.c-blue .t::before,.item.c-orange .t::before,.item.c-green .t::before,.item.c-night .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--stripe);margin-right:10px;vertical-align:3px}
+.panel > .item:first-of-type{border-top:0}
 /* 행사 자세히 보기 창: 선으로 나눈 줄 + 금색 소제목 */
 #evinfo{background:var(--bg);color:var(--fg);border-radius:4px}
 .eihead .sw{display:none}
 .eihead h2{font-family:var(--f-display);font-size:1.7rem;line-height:1.3;letter-spacing:-.03em}
 .eimeta{color:var(--muted)}
 .eidl{border-top:1px solid var(--fg);padding-top:6px}
-.eidl dt{font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+.eidl dt{font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 .einotice{background:transparent;border:0;border-radius:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0}
-.einotice b{font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+.einotice b{font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 .einotice p{color:var(--fg)}
-#evinfo h3{font-size:.75rem;font-weight:600;letter-spacing:.2em;color:var(--gold)}
+#evinfo h3{font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
 #evinfo h3 small{letter-spacing:0;color:var(--muted)}
 .eirow{border-color:var(--line)}
 .eirow.today{background:var(--sel-bg)}

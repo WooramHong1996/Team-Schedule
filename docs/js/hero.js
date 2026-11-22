@@ -9,9 +9,9 @@ function renderHero(){
   countUp(el);
 }
 // 큰 날짜: "22  11월 일요일 / 2026 · 오늘"
-function heroDate(key, extra){
+function heroDate(key, extra, sm){
   const [y,m,d] = key.split("-").map(Number), wd = DOW[new Date(y,m-1,d).getDay()];
-  return '<div class="hdate"><b>'+d+'</b><span><em>'+m+'월 '+wd+'요일</em><small>'+y+(key===todayKey?' · 오늘':'')+'</small></span>'+(extra||'')+'</div>';
+  return '<div class="hdate'+(sm?' sm':'')+'"><b>'+d+'</b><span><em>'+m+'월 '+wd+'요일</em><small>'+y+(key===todayKey?' · 오늘':'')+'</small></span>'+(extra||'')+'</div>';
 }
 function heroMember(me){
   const mine = DATA.assign.filter(a=>a.name===me);
@@ -49,16 +49,20 @@ function heroAdmin(){
   const short = evs.filter(x=>shortDays(x.name)>0).length;
   const t = DATA.assign.filter(a=>a.date===todayKey), tEv = new Set(t.map(a=>a.event));
   const kpi = (label, n, unit, sub, warn) => '<div class="hkpi'+(warn?' warn':'')+'"><span class="hk-l">'+label+'</span><b data-n="'+n+'">'+n+'</b><i>'+unit+'</i>'+(sub?'<small>'+sub+'</small>':'')+'</div>';
-  return heroDate(todayKey)+
+  // 인원 부족이 있으면 맨 먼저, 누르면 행사 관리로
+  const alert = short
+    ? '<button type="button" class="halert" data-atab="events"><b>'+short+'</b><span><strong>인원이 부족한 행사</strong><small>눌러서 행사 관리에서 채우기</small></span>'+icon('arrow',20)+'</button>'
+    : '<div class="halert ok"><span><strong>'+(m+1)+'월 행사 인원이 모두 채워졌어요</strong></span></div>';
+  return heroDate(todayKey, '', true)+alert+
     '<div class="hcard admin"><div class="hlabel"><span>오늘 현장</span><i aria-hidden="true"></i></div>'+
       '<b class="htitle">'+(t.length ? t.length+'명 · 행사 '+tEv.size+'개' : '오늘은 배정이 없어요')+'</b>'+
       (t.length ? '<span class="hmeta">'+[...tEv].map(x=>'<span>'+esc(x)+'</span>').join('')+'</span>' : '')+'</div>'+
     '<div class="hlabel"><span>'+(m+1)+'월</span><i aria-hidden="true"></i></div>'+
     '<div class="hkpis">'+
-      kpi('배정', inM.length, '칸', '주간 '+inM.filter(a=>a.shift!=="야간").length+' · 야간 '+inM.filter(a=>a.shift==="야간").length)+
+      kpi('배정', inM.length, '칸', '')+
       kpi('근무자', new Set(inM.map(a=>a.name)).size, '명', '')+
       kpi('행사', evs.length, '개', '')+
-      kpi('인원 부족', short, '개', short ? '행사 관리에서 확인' : '모두 채워졌어요', short>0)+
+      kpi('야간', inM.filter(a=>a.shift==="야간").length, '칸', '')+
     '</div>';
 }
 // 처음 한 번만 숫자가 0부터 올라가요 (움직임 줄이기 설정이면 바로 표시)
@@ -76,6 +80,7 @@ function countUp(el){
 }
 document.getElementById("hero").addEventListener("click", e=>{
   if(e.target.closest("[data-today]")){ document.getElementById("today").click(); return; }
+  const at = e.target.closest("[data-atab]"); if(at && ADM.admin){ admTab(at.dataset.atab); return; }
   const c = e.target.closest("[data-evinfo]"); if(c && !ADM.admin) showEventInfo(c.dataset.evinfo);
 });
 document.getElementById("hero").addEventListener("keydown", e=>{

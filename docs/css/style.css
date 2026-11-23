@@ -616,7 +616,7 @@ header{border-bottom:0;padding-top:max(18px,env(safe-area-inset-top,0px))}
 .panel,.cal,.edhead{background:transparent;border:0;border-radius:0;box-shadow:none}
 .panel{padding:22px 0 0;border-top:1px solid var(--line)}
 .panel h2{font-family:var(--f-ui);font-size:.85rem;font-weight:700;letter-spacing:-.01em;color:var(--gold)}
-.panel h2 small{letter-spacing:0;color:var(--muted)}
+.panel h2 small{letter-spacing:0;color:var(--muted);font-size:.8rem}
 .cal{border-top:1px solid var(--line)}
 .dow div{font-size:.75rem;border-bottom-color:var(--line)}
 .day{border-color:var(--line);background:transparent}
@@ -627,21 +627,14 @@ header{border-bottom:0;padding-top:max(18px,env(safe-area-inset-top,0px))}
 .day.sel{box-shadow:none;background:transparent}
 .day.sel .num{background:var(--accent);color:var(--accent-ink);font-weight:700}
 .day.today:not(.sel) .num{background:transparent;color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg);font-weight:700}
-.legend .sw{border-radius:50%}
-/* 팀원 휴대폰 달력: 막대 대신 금색 점 (고른 날 내용은 맨 위에) */
+.legend .sw{border-radius:2px}
+/* 휴대폰 달력: 얇은 막대 + 행사 이름(12px). 팀원·관리자 같은 모양 */
 @media (max-width:720px){
-  body:not(.admin) .grid .day{border-bottom-color:transparent;min-height:56px;align-items:center}
-  body:not(.admin) .bars{display:flex;justify-content:center;gap:3px;margin-top:4px}
-  body:not(.admin) .bar{width:5px;height:5px;border-radius:50%;margin:0 !important;flex:none;background:var(--gold)}
-  body:not(.admin) .bar.empty{display:none}
-  body:not(.admin) .bar em,body:not(.admin) .more{display:none}
-  body:not(.admin) .bar.c-orange{background:var(--muted)}
-  body:not(.admin) .legend .sw{width:8px;height:8px}
-  body:not(.admin) .legend .sw.c-blue{background:var(--gold)}
-  body:not(.admin) .legend .sw.c-orange{background:var(--muted)}
-  body:not(.admin) .ev .sw{border-radius:50%;width:8px;height:8px}
-  body:not(.admin) .ev .sw.c-blue{background:var(--gold)}
-  body:not(.admin) .ev .sw.c-orange{background:var(--muted)}
+  .grid .day{min-height:64px}
+  .bars{gap:3px;margin-top:4px}
+  .bar{height:18px}
+  .bar.cl{margin-left:-4px}
+  .bar em{font-size:12px;line-height:18px;font-weight:600;left:4px;letter-spacing:-.03em}
   .hdate > b{font-size:4.6rem}
   .htitle{font-size:1.75rem}
   .hkpis{grid-template-columns:repeat(2,1fr)}

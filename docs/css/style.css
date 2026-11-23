@@ -687,6 +687,26 @@ body.admin .short-dot{width:6px;height:6px;top:9px;right:8px}
 .ad-head > :first-child,.ad-head{font-family:var(--f-display)}
 .ad-head .needl{font-family:var(--f-ui)}
 .ad-chip,.ad-add input,.ad-add button,.ad-more{border-radius:4px}
+/* 시안 5: 달력을 위로 — 휴대폰은 날짜 한 줄, 관리자 숫자 한 줄, 달력 칸에 옅은 선 */
+.grid .day{border-right:1px solid var(--line)}
+.grid .day:nth-child(7n){border-right:0}
+.day:active{background:var(--sel-bg)}
+@media (max-width:720px){
+  .hdate{gap:10px;align-items:baseline}
+  .hdate > b{font-size:2.4rem;line-height:1}
+  .hdate > span{flex-direction:row;align-items:baseline;gap:8px;padding:0}
+  .hdate em{font-size:1.05rem}
+  #hero{gap:16px}
+  .hkpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .hkpis .hkpi{padding:10px 0 10px 10px;border-top:0;column-gap:2px}
+  .hkpis .hkpi:nth-child(3){padding-left:10px;border-left:1px solid var(--line)}
+  .hkpis .hkpi:first-child{padding-left:0}
+  .hkpis .hkpi b{font-size:1.35rem}
+  .hkpis .hkpi i{font-size:.75rem}
+  .hkpis .hkpi small{display:none}
+  .hkpis .hk-l{font-size:.75rem;grid-column:1/-1}
+  .hkpis .hk-l svg{display:none}
+}
 /* 행사 자세히 보기 창: 선으로 나눈 줄 + 금색 소제목 */
 #evinfo{background:var(--bg);color:var(--fg);border-radius:4px}
 .eihead .sw{display:none}

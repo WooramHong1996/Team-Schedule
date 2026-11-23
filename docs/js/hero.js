@@ -25,7 +25,7 @@ function heroMember(me){
   label = label || (isToday ? '오늘의 근무' : (day<todayKey ? '지난 근무' : '이날 근무'));
   const back = isToday ? '' : '<button type="button" class="hback" data-today>오늘로</button>';
   const head = heroDate(selected, back);
-  const rule = (t, live) => '<div class="hlabel"><span>'+t+'</span><i aria-hidden="true"></i>'+(live?'<span class="hlive"><i aria-hidden="true"></i>오늘</span>':'')+'</div>';
+  const rule = (t, live) => '<div class="hlabel"><span>'+t+'</span><i aria-hidden="true"></i>'+'</div>';
   if(!pick.length) return head+'<div class="hcard empty">'+rule(isToday?'오늘의 근무':'이날 근무')+
     '<b class="htitle">'+(isToday ? '예정된 근무가 없어요' : '이날은 근무가 없어요')+'</b>'+
     '<span class="hsub">'+(isToday ? '새로 배정되면 여기 가장 먼저 보여요.' : '달력에서 다른 날을 눌러 보세요.')+'</span></div>';

@@ -665,6 +665,28 @@ body.admin .short-dot{width:6px;height:6px;top:9px;right:8px}
 .item.c-blue .t,.item.c-orange .t,.item.c-green .t,.item.c-night .t{font-family:var(--f-display);font-size:1.15rem}
 .item.c-blue .t::before,.item.c-orange .t::before,.item.c-green .t::before,.item.c-night .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--stripe);margin-right:10px;vertical-align:3px}
 .panel > .item:first-of-type{border-top:0}
+/* 관리자 '행사 관리': 상자 대신 선, 행사 이름은 명조, 종류는 점 + 글자 */
+.adddet{border:0;border-radius:0;border-bottom:1px solid var(--line);padding:0}
+.adddet summary{color:var(--fg);min-height:48px;display:flex;align-items:center;gap:6px}
+.erow.eopen,.erow.eopen:first-child{border:0;border-top:1px solid var(--line);border-radius:0;padding:18px 0;margin:0}
+.erow.eopen:hover,.erow.eopen:focus-visible{background:var(--hover-bg)}
+.erow.eopen .emain > b{font-family:var(--f-display);font-size:1.2rem;font-weight:700;letter-spacing:-.03em}
+.emain .etag{background:transparent !important;color:var(--muted) !important;padding:0;border-radius:0;margin-bottom:4px;font-size:.8rem;font-weight:600}
+.emain .etag::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0;background:var(--orange-mid)}
+.emain .etag.c-blue::before{background:var(--blue-bg)}
+.emain .etag.c-green::before{background:var(--green-mid)}
+.ebadge{border-radius:2px}
+.edhead{padding:4px 0 0}
+.edhead h2{font-family:var(--f-display);font-size:1.6rem;font-weight:700;letter-spacing:-.03em;color:var(--fg)}
+.edhead h2 .sw{display:none}
+.edtabs button[aria-selected="true"]{border-bottom-width:2px;border-bottom-color:var(--fg)}
+.ad-all{background:transparent;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;padding:12px 0}
+.ad-all input,.ad-all select{border-radius:4px}
+.ad-day{background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;padding:16px 0}
+.ad-day.today{border-top-color:var(--fg)}
+.ad-head > :first-child,.ad-head{font-family:var(--f-display)}
+.ad-head .needl{font-family:var(--f-ui)}
+.ad-chip,.ad-add input,.ad-add button,.ad-more{border-radius:4px}
 /* 행사 자세히 보기 창: 선으로 나눈 줄 + 금색 소제목 */
 #evinfo{background:var(--bg);color:var(--fg);border-radius:4px}
 .eihead .sw{display:none}

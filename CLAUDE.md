@@ -19,7 +19,7 @@
 
 ## 화면 바꿀 때
 - 빌드 없음. 일반 `<script>` 를 `index.html` 아래 순서대로 읽음(전역 공유). 새 파일은 그 순서에 맞춰 추가.
-- 테마는 검정·금색(2026-11-22). 금색(`--gold`)은 띠의 달 이름·오늘 표시·전시 막대 글자 세 군데만, 버튼·선택은 먹색(`--accent`).
+- 테마는 '시안 4 프리미엄'(2026-11-23): 아이보리 바탕 + 에스프레소 머리띠, 명조(`--f-display`)는 큰 날짜·제목·숫자에만. 상자 대신 가는 선(`--line`). 금색(`--gold`)은 소제목·달 이름(`--band-gold`)에, 버튼·선택은 먹색(`--accent`). 한글 소제목에 넓은 자간 쓰지 않기.
 - 디자인은 `docs/css/style.css` 하나. 색은 맨 위 변수만 쓰기(새 #색 직접 쓰지 않기), HTML·JS 에 `style="..."` 금지(동적 CSS 변수 `--run` 만 예외).
 - 화면 HTML 은 JS 문자열로 만듦 → 사용자 입력은 반드시 `esc()` 로 감싸기(XSS).
 - 날짜·전화 표시는 `util.js` 도우미로: `md`(11/7 (토)) · `mdShort`(11/7) · `mdhm`(11/7 09:05) · `telHref`. 파일마다 새로 만들지 않기.
@@ -27,6 +27,6 @@
 - 로그인 없이 보기: `docs/preview.html?as=member|admin|new|guest&theme=dark&frame=phone`.
 
 ## 확인 · 올리기
-- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 62개. 전부 통과해야 함.
+- `node tests/run.js docs` — 가짜 DB(`docs/preview/mock.js`)로 화면 테스트 63개. 전부 통과해야 함.
 - 커밋 후 `main` 에 push 하면 1~2분 뒤 사이트 반영. 작업 브랜치 `setup/supabase-schema` 도 같이 맞춰 둠.
 - 사용자(홍우람)에게는 쉬운 한국어로, 개발 용어 대신 화면에서 보이는 말로 설명.
